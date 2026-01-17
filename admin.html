@@ -3,40 +3,227 @@
 <head>
   <meta charset="UTF-8">
   <title>PUYOLA Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    .admin-actions {
+      margin-bottom: 25px;
+    }
+
+    .admin-actions input,
+    .admin-actions textarea,
+    .admin-actions select,
+    .admin-actions button {
+      display: block;
+      width: 100%;
+      margin: 6px 0;
+      padding: 8px;
+    }
+
+    .item button {
+      margin-right: 5px;
+    }
+  </style>
 </head>
+
 <body>
-  <header>
-    <img src="logo.png" alt="PUYOLA Logo" class="logo">
-    <h1>Admin Dashboard</h1>
-  </header>
 
-  <main>
-    <section id="events-section">
-      <h2>Events</h2>
-      <div id="events-list"></div>
-    </section>
+<header>
+  <img src="logo.png" class="logo">
+  <h1>Admin Dashboard</h1>
+  <p>Manage Events • Polls • Announcements</p>
+</header>
 
-    <section id="polls-section">
-      <h2>Polls</h2>
-      <div id="polls-list"></div>
-    </section>
+<main>
 
-    <section id="announcements-section">
-      <h2>Announcements</h2>
-      <div id="announcements-list"></div>
-    </section>
-  </main>
+  <!-- EVENTS -->
+  <section>
+    <h2>Events</h2>
 
-  <footer>
-    Copyright <span id="year"></span> PUYOLA | Designed by Oguma Austine | All Rights Reserved
-  </footer>
+    <div class="admin-actions">
+      <input id="eventTitle" placeholder="Event title">
+      <input id="eventDate" type="date">
+      <button onclick="addEvent()">Add Event</button>
+    </div>
 
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
+    <div id="events-list"></div>
+  </section>
 
-  <script type="module" src="firebase-config.js"></script>
-  <script type="module" src="admin.js"></script>
+  <!-- POLLS -->
+  <section>
+    <h2>Polls</h2>
+
+    <div class="admin-actions">
+      <input id="pollTitle" placeholder="Poll question">
+      <input id="pollOptions" placeholder="Options (comma separated)">
+      <select id="pollStatus">
+        <option value="active">Active</option>
+        <option value="closed">Closed</option>
+      </select>
+      <button onclick="addPoll()">Create Poll</button>
+    </div>
+
+    <div id="polls-list"></div>
+  </section>
+
+  <!-- ANNOUNCEMENTS -->
+  <section>
+    <h2>Announcements</h2>
+
+    <div class="admin-actions">
+      <input id="annTitle" placeholder="Announcement title">
+      <textarea id="annBody" placeholder="Announcement body"></textarea>
+      <button onclick="addAnnouncement()">Post Announcement</button>
+    </div>
+
+    <div id="announcements-list"></div>
+  </section>
+
+</main>
+
+<footer>
+  © <span id="year"></span> PUYOLA | Designed by Oguma Austine | All Rights Reserved
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+
+<script type="module">
+  import { db } from "./firebase-config.js";
+  import {
+    collection,
+    getDocs,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    doc
+  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+  // -------- EVENTS ----------
+  window.addEvent = async () => {
+    const title = eventTitle.value.trim();
+    const date = eventDate.value;
+
+    if (!title) return alert("Event title required");
+
+    await addDoc(collection(db, "events"), { title, date });
+    eventTitle.value = "";
+    eventDate.value = "";
+    loadEvents();
+  };
+
+  async function loadEvents() {
+    const snap = await getDocs(collection(db, "events"));
+    events-list.innerHTML = "";
+
+    snap.forEach(d => {
+      const e = d.data();
+      events-list.innerHTML += `
+        <div class="item">
+          <strong>${e.title}</strong> (${e.date || "No date"})
+          <button onclick="deleteEvent('${d.id}')">Delete</button>
+        </div>`;
+    });
+  }
+
+  window.deleteEvent = async id => {
+    if (confirm("Delete event?")) {
+      await deleteDoc(doc(db, "events", id));
+      loadEvents();
+    }
+  };
+
+  // -------- POLLS ----------
+  window.addPoll = async () => {
+    const title = pollTitle.value.trim();
+    const options = pollOptions.value.split(",").map(o => o.trim());
+    const status = pollStatus.value;
+
+    if (!title || options.length < 2)
+      return alert("Poll needs title and at least 2 options");
+
+    await addDoc(collection(db, "polls"), {
+      title,
+      options,
+      status,
+      votes: []
+    });
+
+    pollTitle.value = "";
+    pollOptions.value = "";
+    loadPolls();
+  };
+
+  async function loadPolls() {
+    const snap = await getDocs(collection(db, "polls"));
+    polls-list.innerHTML = "";
+
+    snap.forEach(d => {
+      const p = d.data();
+      polls-list.innerHTML += `
+        <div class="item">
+          <strong>${p.title}</strong> [${p.status}]
+          <button onclick="closePoll('${d.id}')">Close</button>
+          <button onclick="deletePoll('${d.id}')">Delete</button>
+        </div>`;
+    });
+  }
+
+  window.closePoll = async id => {
+    await updateDoc(doc(db, "polls", id), { status: "closed" });
+    loadPolls();
+  };
+
+  window.deletePoll = async id => {
+    if (confirm("Delete poll?")) {
+      await deleteDoc(doc(db, "polls", id));
+      loadPolls();
+    }
+  };
+
+  // -------- ANNOUNCEMENTS ----------
+  window.addAnnouncement = async () => {
+    const title = annTitle.value.trim();
+    const body = annBody.value.trim();
+
+    if (!title || !body) return alert("All fields required");
+
+    await addDoc(collection(db, "announcements"), { title, body });
+    annTitle.value = "";
+    annBody.value = "";
+    loadAnnouncements();
+  };
+
+  async function loadAnnouncements() {
+    const snap = await getDocs(collection(db, "announcements"));
+    announcements-list.innerHTML = "";
+
+    snap.forEach(d => {
+      const a = d.data();
+      announcements-list.innerHTML += `
+        <div class="item">
+          <strong>${a.title}</strong>
+          <p>${a.body}</p>
+          <button onclick="deleteAnnouncement('${d.id}')">Delete</button>
+        </div>`;
+    });
+  }
+
+  window.deleteAnnouncement = async id => {
+    if (confirm("Delete announcement?")) {
+      await deleteDoc(doc(db, "announcements", id));
+      loadAnnouncements();
+    }
+  };
+
+  // INITIAL LOAD
+  loadEvents();
+  loadPolls();
+  loadAnnouncements();
+</script>
+
 </body>
-</html>
+  </html>
