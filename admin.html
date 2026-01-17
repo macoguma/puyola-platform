@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PUYOLA Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="PUYOLA Logo" class="logo">
+    <h1>Admin Dashboard</h1>
+  </header>
+
+  <main>
+    <section id="events-section">
+      <h2>Events</h2>
+      <div id="events-list"></div>
+    </section>
+
+    <section id="polls-section">
+      <h2>Polls</h2>
+      <div id="polls-list"></div>
+    </section>
+
+    <section id="announcements-section">
+      <h2>Announcements</h2>
+      <div id="announcements-list"></div>
+    </section>
+  </main>
+
+  <footer>
+    Copyright <span id="year"></span> PUYOLA | Designed by Oguma Austine | All Rights Reserved
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
