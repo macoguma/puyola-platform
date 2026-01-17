@@ -1,102 +1,81 @@
 import { db } from "./firebase-config.js";
 import {
-  collection, getDocs, addDoc, updateDoc, deleteDoc, doc
+  collection, addDoc, getDocs, deleteDoc, doc, updateDoc
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-// UTILITY FUNCTION TO RENDER ITEMS
-function renderItem(containerId, dataArray, type) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
-  dataArray.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "item";
-
-    if(type === "event") {
-      div.innerHTML = `
-        <strong>${item.title}</strong> - ${item.date || "No Date"} 
-        <button onclick='editEvent("${item.id}")'>Edit</button>
-        <button onclick='deleteEvent("${item.id}")'>Delete</button>
-      `;
-    }
-
-    if(type === "poll") {
-      div.innerHTML = `
-        <strong>${item.title}</strong> - Status: ${item.status}
-        <button onclick='closePoll("${item.id}")'>Close</button>
-        <button onclick='deletePoll("${item.id}")'>Delete</button>
-      `;
-    }
-
-    if(type === "announcement") {
-      div.innerHTML = `
-        <strong>${item.title}</strong>: ${item.body} 
-        <button onclick='editAnnouncement("${item.id}")'>Edit</button>
-        <button onclick='deleteAnnouncement("${item.id}")'>Delete</button>
-      `;
-    }
-
-    container.appendChild(div);
+// EVENTS
+window.addEvent = async () => {
+  await addDoc(collection(db,"events"),{
+    title: eventTitle.value,
+    date: eventDate.value
   });
-}
-
-// FIRESTORE READ FUNCTIONS
-async function loadEvents() {
-  const snapshot = await getDocs(collection(db, "events"));
-  const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  renderItem("events-list", events, "event");
-}
-
-async function loadPolls() {
-  const snapshot = await getDocs(collection(db, "polls"));
-  const polls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  renderItem("polls-list", polls, "poll");
-}
-
-async function loadAnnouncements() {
-  const snapshot = await getDocs(collection(db, "announcements"));
-  const anns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  renderItem("announcements-list", anns, "announcement");
-}
-
-// ADMIN ACTIONS (CRUD)
-window.editEvent = async (id) => {
-  const newTitle = prompt("New Event Title:");
-  if(!newTitle) return;
-  await updateDoc(doc(db, "events", id), { title: newTitle });
   loadEvents();
 };
 
-window.deleteEvent = async (id) => {
-  if(confirm("Delete this event?")) {
-    await deleteDoc(doc(db, "events", id));
-    loadEvents();
-  }
-};
+async function loadEvents(){
+  const snap = await getDocs(collection(db,"events"));
+  events-list.innerHTML="";
+  snap.forEach(d=>{
+    events-list.innerHTML+=`
+      <div class="item">
+        ${d.data().title} - ${d.data().date}
+        <button onclick="deleteItem('events','${d.id}')">Delete</button>
+      </div>`;
+  });
+}
 
-window.closePoll = async (id) => {
-  await updateDoc(doc(db, "polls", id), { status: "closed" });
+// POLLS
+window.addPoll = async () => {
+  await addDoc(collection(db,"polls"),{
+    title: pollTitle.value,
+    status:"active",
+    options: pollOptions.value.split(","),
+    votes:[]
+  });
   loadPolls();
 };
 
-window.deletePoll = async (id) => {
-  if(confirm("Delete this poll?")) {
-    await deleteDoc(doc(db, "polls", id));
-    loadPolls();
-  }
+async function loadPolls(){
+  const snap = await getDocs(collection(db,"polls"));
+  polls-list.innerHTML="";
+  snap.forEach(d=>{
+    polls-list.innerHTML+=`
+      <div class="item">
+        ${d.data().title} (${d.data().status})
+        <button onclick="closePoll('${d.id}')">Close</button>
+      </div>`;
+  });
+}
+
+window.closePoll = async id=>{
+  await updateDoc(doc(db,"polls",id),{status:"closed"});
+  loadPolls();
 };
 
-window.editAnnouncement = async (id) => {
-  const newTitle = prompt("New Announcement Title:");
-  const newBody = prompt("New Announcement Body:");
-  if(!newTitle && !newBody) return;
-  const updateData = {};
-  if(newTitle) updateData.title = newTitle;
-  if(newBody) updateData.body = newBody;
-  await updateDoc(doc(db, "announcements", id), updateData);
+// ANNOUNCEMENTS
+window.addAnnouncement = async ()=>{
+  await addDoc(collection(db,"announcements"),{
+    title: annTitle.value,
+    body: annBody.value
+  });
   loadAnnouncements();
 };
 
-// INITIAL LOAD
-loadEvents();
-loadPolls();
-loadAnnouncements();
+async function loadAnnouncements(){
+  const snap = await getDocs(collection(db,"announcements"));
+  announcements-list.innerHTML="";
+  snap.forEach(d=>{
+    announcements-list.innerHTML+=`
+      <div class="item">
+        <b>${d.data().title}</b> - ${d.data().body}
+        <button onclick="deleteItem('announcements','${d.id}')">Delete</button>
+      </div>`;
+  });
+}
+
+window.deleteItem = async (col,id)=>{
+  await deleteDoc(doc(db,col,id));
+  loadEvents(); loadPolls(); loadAnnouncements();
+};
+
+loadEvents(); loadPolls(); loadAnnouncements();
