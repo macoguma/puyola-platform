@@ -12,3 +12,9 @@ document.getElementById("loginBtn").addEventListener("click", () => {
     alert("Incorrect password!");
   }
 });
+
+// Show/Hide password
+document.getElementById("showPassword").addEventListener("change", () => {
+  const pwd = document.getElementById("password");
+  pwd.type = pwd.type === "password" ? "text" : "password";
+});
