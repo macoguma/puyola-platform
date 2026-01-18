@@ -17,7 +17,7 @@ section{padding:20px; max-width: 900px; margin: auto;}
 input,textarea,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:4px;box-sizing: border-box;}
 button{background:#003366;color:#fff;border:none;padding:10px 15px;margin:5px 0;border-radius:4px;cursor:pointer;font-weight:bold}
 button:hover{opacity:0.9}
-footer{text-align:center;background:#eee;padding:20px;margin-top:20px;font-size:0.9em;color:#555}
+footer{text-align:center;background:#eee;padding:20px;margin-top:20px;font-size:0.8em;color:#555}
 table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff}
 th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.8em}
 th{background:#003366;color:#fff}
@@ -34,6 +34,9 @@ th{background:#003366;color:#fff}
 .btn-email{background:#ea4335; flex:1; text-align:center; display:block; text-decoration:none; color:white; padding:10px; border-radius:4px;}
 .btn-whatsapp{background:#25d366; flex:1; text-align:center; display:block; text-decoration:none; color:white; padding:10px; border-radius:4px;}
 .anon-msg{background:#fff5f5; border-left: 5px solid #ff4d4d; padding: 10px; margin: 5px 0; font-style: italic;}
+.status-indicator{font-size:0.8em; font-weight:bold; padding:4px 8px; border-radius:12px;}
+.status-open{background:#d4edda; color:#155724;}
+.status-closed{background:#f8d7da; color:#721c24;}
 </style>
 </head>
 
@@ -51,33 +54,30 @@ th{background:#003366;color:#fff}
 <header>Admin Dashboard <button class="logout-btn" onclick="window.logout()">Logout</button></header>
 <div class="card">
     <div class="tabs">
-        <button class="tab-btn active" id="tabRegister" onclick="window.switchTab('reg')">Members <span id="regCount" class="badge">0</span></button>
-        <button class="tab-btn" id="tabAttend" onclick="window.switchTab('att')">Attendance</button>
-        <button class="tab-btn" id="tabAnon" onclick="window.switchTab('anon')">Anonymous</button>
+        <button class="tab-btn active" onclick="window.switchTab('reg')">Members <span id="regCount" class="badge">0</span></button>
+        <button class="tab-btn" onclick="window.switchTab('att')">Attendance</button>
+        <button class="tab-btn" onclick="window.switchTab('anon')">Feedback</button>
     </div>
     
-    <div id="editZone" class="hidden" style="background:#fff9e6; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin-bottom:10px;">
-        <strong>Editing Record:</strong>
-        <input id="editName" placeholder="Name"><input id="editAdm" placeholder="Admission">
-        <button id="saveEditBtn" style="background:#28a745">Update</button>
-        <button onclick="document.getElementById('editZone').classList.add('hidden')" style="background:#6c757d">Cancel</button>
+    <div id="attSection" class="hidden">
+        <div style="background:#eef; padding:10px; border-radius:5px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <span><strong>Meeting Mode:</strong> <span id="modeText">Loading...</span></span>
+            <button id="toggleMeetingMode" style="background:#003366; font-size:0.7em;">Toggle Open/Close</button>
+        </div>
+        <button class="toggle-btn" onclick="window.toggleTable('attendTableWrapper')">Show/Hide Attendance List</button>
+        <div id="attendTableWrapper" class="hidden">
+            <input type="text" placeholder="Search attendance..." oninput="window.filterTable('adminAttendance', this.value)">
+            <button id="exportAttendanceBtn" style="background: #28a745">Export CSV</button>
+            <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Event</th><th>Time</th><th>Action</th></tr></thead><tbody id="adminAttendance"></tbody></table></div>
+        </div>
     </div>
 
     <div id="regSection">
         <button class="toggle-btn" onclick="window.toggleTable('memberTableWrapper')">Show/Hide Member List</button>
         <div id="memberTableWrapper" class="hidden">
-            <input type="text" placeholder="Search members..." oninput="window.filterTable('adminMembers', this.value)">
-            <button id="exportMembersBtn" style="background: #28a745">Export Members (CSV)</button>
-            <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Year</th><th>Phone</th><th>Joined</th><th>Action</th></tr></thead><tbody id="adminMembers"></tbody></table></div>
-        </div>
-    </div>
-
-    <div id="attSection" class="hidden">
-        <button class="toggle-btn" onclick="window.toggleTable('attendTableWrapper')">Show/Hide Attendance List</button>
-        <div id="attendTableWrapper" class="hidden">
-            <input type="text" placeholder="Search attendance..." oninput="window.filterTable('adminAttendance', this.value)">
-            <button id="exportAttendanceBtn" style="background: #28a745">Export Attendance (CSV)</button>
-            <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Event</th><th>Time</th><th>Action</th></tr></thead><tbody id="adminAttendance"></tbody></table></div>
+            <input type="text" placeholder="Search..." oninput="window.filterTable('adminMembers', this.value)">
+            <button id="exportMembersBtn" style="background: #28a745">Export CSV</button>
+            <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Year</th><th>Phone</th><th>Action</th></tr></thead><tbody id="adminMembers"></tbody></table></div>
         </div>
     </div>
 
@@ -91,11 +91,8 @@ th{background:#003366;color:#fff}
 </div>
 
 <div class="card">
-    <button onclick="document.getElementById('formArea').classList.toggle('hidden')" style="width:100%">Open Creation Tools</button>
+    <button onclick="document.getElementById('formArea').classList.toggle('hidden')" style="width:100%">Creation Tools</button>
     <div id="formArea" class="hidden">
-        <h4>Create New Poll</h4>
-        <input id="pTitle" placeholder="Poll Question"><input id="pOptions" placeholder="Options (comma separated)"><input type="number" id="pDuration" placeholder="Duration (Minutes)"><button id="startPoll">Start Poll</button>
-        <hr>
         <h4>Events & Announcements</h4>
         <input id="aTitle" placeholder="Announcement Title"><textarea id="aBody" placeholder="Message Body"></textarea><button id="postAnnouncement">Post Announcement</button>
         <hr>
@@ -103,46 +100,58 @@ th{background:#003366;color:#fff}
     </div>
 </div>
 <div id="adminPolls"></div>
-<div id="adminAnnouncements"></div>
 <div id="adminEventsList"></div>
 </section>
 
 <section id="memberView" class="hidden">
 <header>Member Dashboard <button class="logout-btn" onclick="window.logout()">Logout</button></header>
+
+<div class="card" style="text-align:center; background: linear-gradient(to right, #003366, #00509e); color:white;">
+    <p style="margin:5px 0; font-size:0.9em;">Current PUYOLA Family Size:</p>
+    <h2 style="margin:0; font-size:2.5em;" id="liveMemberCount">0</h2>
+</div>
+
 <div class="card">
-    <h4 style="margin-top:0">Support & Feedback</h4>
     <div class="contact-grid">
         <a href="mailto:info.puyola@gmail.com" class="btn-email"><i class="fas fa-envelope"></i> Email Us</a>
-        <a href="https://wa.me/254793378439" target="_blank" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> Contact Admin</a>
+        <a href="https://wa.me/254793378439" target="_blank" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>
     </div>
 </div>
 
-<div class="card" style="background:#fefefe; border: 1px dashed #003366">
-    <h3 style="color:#003366"><i class="fas fa-user-secret"></i> Send Anonymous Message</h3>
-    <textarea id="anonInput" placeholder="Type your suggestion or feedback here... (No one will see who sent this)"></textarea>
-    <button id="sendAnon" style="width:100%; background:#003366">Send Message</button>
+<div id="attendanceCard" class="card">
+    <h3>Event Attendance</h3>
+    <div id="attendanceStatus"></div>
+    <div id="attendanceFields">
+        <input id="attName" placeholder="Full Name"><input id="attAdm" placeholder="Admission No"><select id="mEventSelect"><option value="">Select Event</option></select>
+        <button id="submitAttendance" style="width:100%">Sign-In</button>
+    </div>
 </div>
 
 <div class="card">
-    <h3>Join PUYOLA (Membership)</h3>
-    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No"><select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select><input id="regPhone" placeholder="Phone"><button id="submitRegistration" style="width:100%; background:#28a745">Register</button><button id="updateRegistration" style="width:100%; background:#ffc107; color:black">Update (To change Existing Details)</button>
+    <h3><i class="fas fa-user-secret"></i> Send Anonymous Message</h3>
+    <textarea id="anonInput" placeholder="Suggestions..."></textarea>
+    <button id="sendAnon" style="width:100%; background:#003366">Send</button>
 </div>
+
 <div class="card">
-    <h3>Event Attendance</h3>
-    <input id="attName" placeholder="Full Name"><input id="attAdm" placeholder="Admission No"><select id="mEventSelect"><option value="">Select Event</option></select><button id="submitAttendance" style="width:100%">Sign-In</button>
+    <h3>Membership Management</h3>
+    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No"><select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select><input id="regPhone" placeholder="Phone">
+    <button id="submitRegistration" style="width:100%; background:#28a745">Register</button>
+    <button id="updateRegistration" style="width:100%; background:#ffc107; color:black">Update Details</button>
 </div>
-<div id="memberPolls"></div>
+
 <div id="memberAnnouncements"></div>
+<div id="memberPolls"></div>
 <div id="memberEvents"></div>
 </section>
 
 <footer>
-    Copyright ©️ <span id="year"></span> PUYOLA | Designed by Oguma Austine | All Rights Reserved
+    Copyright ©️ <span id="currentYear"></span> PUYOLA | Designed by Oguma Austine | All Rights Reserved
 </footer>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, increment, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, setDoc, increment, writeBatch } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
@@ -156,13 +165,13 @@ const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
 const ADMIN="Puyola@0032542025", MEMBER="Puyola@2025";
-let currentEditId=null, currentEditCol="";
+let isMeetingOpen = false;
 
 window.onload=()=>{
     const s=localStorage.getItem("puyola_session");
     if(s==="admin"){ loginBox.classList.add("hidden"); adminView.classList.remove("hidden"); loadAll(); }
     else if(s==="member"){ loginBox.classList.add("hidden"); memberView.classList.remove("hidden"); loadAll(); }
-    document.getElementById("year").textContent=new Date().getFullYear();
+    document.getElementById("currentYear").textContent=new Date().getFullYear();
 };
 
 document.getElementById("loginBtn").onclick=()=>{
@@ -173,34 +182,48 @@ document.getElementById("loginBtn").onclick=()=>{
 };
 
 window.logout=()=>{ localStorage.removeItem("puyola_session"); location.reload(); };
-document.getElementById("togglePass").onchange=e=>{ document.getElementById("loginPassword").type=e.target.checked?"text":"password"; };
 
-/* ANONYMOUS ACTIONS */
+/* MEETING MODE LOGIC */
+async function syncMeetingMode() {
+    const docRef = doc(db, "settings", "meetingStatus");
+    onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            isMeetingOpen = docSnap.data().isOpen;
+            const statusText = isMeetingOpen ? "OPEN (Active Meeting)" : "CLOSED (No Meeting)";
+            if(document.getElementById("modeText")) document.getElementById("modeText").innerText = statusText;
+            
+            // Member UI Update
+            const statusDiv = document.getElementById("attendanceStatus");
+            const fieldsDiv = document.getElementById("attendanceFields");
+            if (statusDiv && fieldsDiv) {
+                if (isMeetingOpen) {
+                    statusDiv.innerHTML = `<span class="status-indicator status-open">Attendance is LIVE</span>`;
+                    fieldsDiv.classList.remove("hidden");
+                } else {
+                    statusDiv.innerHTML = `<span class="status-indicator status-closed">Attendance is currently closed.</span>`;
+                    fieldsDiv.classList.add("hidden");
+                }
+            }
+        }
+    });
+}
+
+document.getElementById("toggleMeetingMode").onclick = async () => {
+    const docRef = doc(db, "settings", "meetingStatus");
+    await setDoc(docRef, { isOpen: !isMeetingOpen });
+};
+
+/* DATA ACTIONS */
 document.getElementById("sendAnon").onclick=async()=>{
-    const msg = document.getElementById("anonInput").value.trim();
-    if(!msg) return alert("Please type something first!");
+    const msg = anonInput.value.trim();
+    if(!msg) return;
     await addDoc(collection(db, "anonymous"), { text: msg, time: new Date().toLocaleString() });
-    alert("Message sent anonymously!");
-    document.getElementById("anonInput").value = "";
+    alert("Sent!"); anonInput.value = "";
 };
 
-document.getElementById("clearAllAnon").onclick=async()=>{
-    if(confirm("Delete all anonymous messages forever?")){
-        const snap = await getDocs(collection(db, "anonymous"));
-        const batch = writeBatch(db);
-        snap.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-        alert("Inbox cleared!");
-    }
-};
-
-/* OTHER ACTIONS */
-document.getElementById("startPoll").onclick=async()=>{
-  const opts = document.getElementById("pOptions").value.split(",").map(o=>o.trim());
-  let votes = {}; opts.forEach(o=>votes[o]=0);
-  const durationMs = (parseInt(document.getElementById("pDuration").value) || 60) * 60000;
-  await addDoc(collection(db,"polls"), { title: pTitle.value, options: opts, votes: votes, expiry: new Date().getTime() + durationMs });
-  alert("Poll Started!"); 
+document.getElementById("addEvent").onclick=async()=>{
+  await addDoc(collection(db,"events"), { title: eTitle.value, date: eDate.value, time: eTime.value, venue: eVenue.value });
+  alert("Added!");
 };
 
 document.getElementById("postAnnouncement").onclick=async()=>{
@@ -208,157 +231,54 @@ document.getElementById("postAnnouncement").onclick=async()=>{
   alert("Posted!"); aTitle.value=""; aBody.value="";
 };
 
-document.getElementById("addEvent").onclick=async()=>{
-  await addDoc(collection(db,"events"), { title: eTitle.value, date: eDate.value, time: eTime.value, venue: eVenue.value });
-  alert("Event Added!"); 
-};
-
-window.vote=async(id,opt)=>{
-  await updateDoc(doc(db,"polls",id), { [`votes.${opt}`]: increment(1) });
-  localStorage.setItem("voted_"+id, true);
-};
-
 window.switchTab=t=>{
     document.getElementById("regSection").classList.toggle("hidden", t!=='reg');
     document.getElementById("attSection").classList.toggle("hidden", t!=='att');
     document.getElementById("anonSection").classList.toggle("hidden", t!=='anon');
-    document.getElementById("tabRegister").classList.toggle("active", t==='reg');
-    document.getElementById("tabAttend").classList.toggle("active", t==='att');
-    document.getElementById("tabAnon").classList.toggle("active", t==='anon');
-};
-
-window.toggleTable=(id)=>{ document.getElementById(id).classList.toggle("hidden"); };
-
-window.filterTable=(tid,v)=>{
-    const rows=document.getElementById(tid).getElementsByTagName("tr");
-    for(let r of rows){ r.style.display=r.innerText.toLowerCase().includes(v.toLowerCase())?"":"none"; }
-};
-
-window.prepareEdit=async(col,id)=>{
-    const snap=await getDoc(doc(db,col,id));
-    if(snap.exists()){
-        currentEditId=id; currentEditCol=col;
-        document.getElementById("editName").value=snap.data().name;
-        document.getElementById("editAdm").value=snap.data().adm;
-        document.getElementById("editZone").classList.remove("hidden");
-        window.scrollTo(0,0);
-    }
-};
-
-document.getElementById("saveEditBtn").onclick=async()=>{
-    await updateDoc(doc(db,currentEditCol,currentEditId), {name:editName.value, adm:editAdm.value});
-    document.getElementById("editZone").classList.add("hidden");
-    alert("Updated!");
 };
 
 /* LOADERS */
-function loadAll(){ loadAdminData(); loadAnnouncements(); loadEvents(); loadPolls(); loadAnon(); }
-
-function loadAnon(){
-    onSnapshot(collection(db, "anonymous"), s => {
-        adminAnonList.innerHTML = "";
-        if(s.empty) adminAnonList.innerHTML = "<p>No messages yet.</p>";
-        s.forEach(d => {
-            const x = d.data();
-            adminAnonList.innerHTML += `<div class="anon-msg">${x.text}<br><small style="color:#888">${x.time}</small> <button class="btn-del" style="font-size:0.6em; padding:2px 5px" onclick="window.delItem('anonymous','${d.id}')">Delete</button></div>`;
-        });
-    });
-}
-
-function loadAdminData(){
+function loadAll(){ 
+    syncMeetingMode();
     onSnapshot(collection(db,"members"),s=>{
         adminMembers.innerHTML=""; regCount.innerText=s.size;
-        s.forEach(d=>{ const x=d.data(); adminMembers.innerHTML+=`<tr><td>${x.name}</td><td>${x.adm}</td><td>${x.year}</td><td>${x.phone}</td><td>${x.date}</td><td><button class="btn-edit" onclick="window.prepareEdit('members','${d.id}')">Edit</button><button class="btn-del" onclick="window.delItem('members','${d.id}')">Del</button></td></tr>`; });
+        if(document.getElementById("liveMemberCount")) document.getElementById("liveMemberCount").innerText = s.size;
+        s.forEach(d=>{ const x=d.data(); adminMembers.innerHTML+=`<tr><td>${x.name}</td><td>${x.adm}</td><td>${x.year}</td><td>${x.phone}</td><td><button class="btn-del" onclick="window.delItem('members','${d.id}')">Del</button></td></tr>`; });
     });
     onSnapshot(collection(db,"attendance"),s=>{
         adminAttendance.innerHTML="";
-        s.forEach(d=>{ const x=d.data(); adminAttendance.innerHTML+=`<tr><td>${x.name}</td><td>${x.adm}</td><td>${x.event}</td><td>${x.time}</td><td><button class="btn-edit" onclick="window.prepareEdit('attendance','${d.id}')">Edit</button><button class="btn-del" onclick="window.delItem('attendance','${d.id}')">Del</button></td></tr>`; });
+        s.forEach(d=>{ const x=d.data(); adminAttendance.innerHTML+=`<tr><td>${x.name}</td><td>${x.adm}</td><td>${x.event}</td><td>${x.time}</td><td><button class="btn-del" onclick="window.delItem('attendance','${d.id}')">Del</button></td></tr>`; });
     });
-}
-
-function loadPolls(){
-    onSnapshot(collection(db,"polls"),s=>{
-        adminPolls.innerHTML="<h4>Manage Polls</h4>"; memberPolls.innerHTML="<h3>Active Polls</h3>";
-        s.forEach(d=>{
-            const p=d.data(); const isExpired = new Date().getTime() > p.expiry;
-            function getTimerText(expiry){
-                const now = new Date().getTime();
-                const diff = expiry - now;
-                if(diff <= 0) return "Expired";
-                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const secs = Math.floor((diff % (1000 * 60)) / 1000);
-                return `${mins}m ${secs}s remaining`;
-            }
-            let resHtml=""; for(let o in p.votes){ resHtml+=`<div class="poll-res">${o}: <b>${p.votes[o]}</b></div>`; }
-            adminPolls.innerHTML+=`<div class="card"><b>${p.title}</b><br><span class="timer" id="timer-admin-${d.id}"></span>${resHtml}<button class="btn-del" onclick="window.delItem('polls','${d.id}')">Remove Poll</button></div>`;
-            let mVoteHtml=`<div class="card"><b>${p.title}</b><br><span class="timer" id="timer-member-${d.id}"></span><br>`;
-            if(localStorage.getItem("voted_"+d.id) || isExpired){ mVoteHtml+=`<small>Results:</small>${resHtml}`; } 
-            else { p.options.forEach(o=>{ mVoteHtml+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `; }); }
-            memberPolls.innerHTML+=mVoteHtml+"</div>";
-            setInterval(()=>{
-                const t = getTimerText(p.expiry);
-                if(document.getElementById(`timer-admin-${d.id}`)) document.getElementById(`timer-admin-${d.id}`).innerText = t;
-                if(document.getElementById(`timer-member-${d.id}`)) document.getElementById(`timer-member-${d.id}`).innerText = t;
-            }, 1000);
+    onSnapshot(collection(db,"anonymous"), s => {
+        adminAnonList.innerHTML = "";
+        s.forEach(d => {
+            const x = d.data();
+            adminAnonList.innerHTML += `<div class="anon-msg">${x.text}<br><small>${x.time}</small> <button class="btn-del" style="font-size:0.6em" onclick="window.delItem('anonymous','${d.id}')">Del</button></div>`;
         });
     });
-}
-
-function loadAnnouncements(){
     onSnapshot(collection(db,"announcements"),s=>{
-      adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="<h3>Announcements</h3>";
-      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p><button class="btn-del" onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
+      memberAnnouncements.innerHTML="<h3>Announcements</h3>";
+      s.forEach(d=>{ const x=d.data(); memberAnnouncements.innerHTML+=`<div class="card"><b>${x.title}</b><p>${x.body}</p></div>`; });
     });
-}
-
-function loadEvents(){
     onSnapshot(collection(db,"events"), s=>{
-      memberEvents.innerHTML="<h3>Events</h3>"; adminEventsList.innerHTML="<h4>Manage Events</h4>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
-      s.forEach(d=>{ 
-          const x=d.data(); 
-          memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`;
-          adminEventsList.innerHTML+=`<div class="card"><b>${x.title}</b><br><button class="btn-del" onclick="window.delItem('events','${d.id}')">Delete Event</button></div>`;
-          mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; 
-      });
+      memberEvents.innerHTML="<h3>Upcoming Events</h3>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
+      s.forEach(d=>{ const x=d.data(); memberEvents.innerHTML+=`<div class="card">📅 ${x.date} | <b>${x.title}</b></div>`; mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; });
     });
 }
 
 document.getElementById("submitRegistration").onclick=async()=>{
-  const n = regName.value.trim(), a = regAdm.value.trim();
-  if(!n || !a) return alert("Fill Name and Adm No.");
-  const snap = await getDocs(collection(db, "members"));
-  let duplicate = false;
-  snap.forEach(d => { if(d.data().name.toLowerCase() === n.toLowerCase() && d.data().adm.toLowerCase() === a.toLowerCase()) duplicate = true; });
-  if(duplicate) return alert("Details Exist! Update Instead.");
-  await addDoc(collection(db,"members"),{name:n, adm:a, year:regYear.value, phone:regPhone.value, date:new Date().toLocaleString()});
-  alert("Registered!"); regName.value=""; regAdm.value=""; regPhone.value="";
-};
-
-document.getElementById("updateRegistration").onclick=async()=>{
-  const n = regName.value.trim(), a = regAdm.value.trim();
-  if(!n || !a) return alert("Enter Name and Adm No.");
-  const snap = await getDocs(collection(db, "members"));
-  let fId = null;
-  snap.forEach(d => { if(d.data().name.toLowerCase() === n.toLowerCase() && d.data().adm.toLowerCase() === a.toLowerCase()) fId = d.id; });
-  if(fId){
-      await updateDoc(doc(db, "members", fId), { year: regYear.value, phone: regPhone.value, date: "Updated: " + new Date().toLocaleString() });
-      alert("Updated!"); regName.value=""; regAdm.value=""; regPhone.value="";
-  } else alert("Not found!");
+  await addDoc(collection(db,"members"),{name:regName.value, adm:regAdm.value, year:regYear.value, phone:regPhone.value, date:new Date().toLocaleString()});
+  alert("Registered!");
 };
 
 document.getElementById("submitAttendance").onclick=async()=>{
+  if(!isMeetingOpen) return alert("Attendance is closed.");
   await addDoc(collection(db,"attendance"),{name:attName.value, adm:attAdm.value, event:mEventSelect.value, time:new Date().toLocaleString()});
-  alert("Attendance Recorded!"); attName.value=""; attAdm.value="";
+  alert("Signed In!");
 };
 
-document.getElementById("exportMembersBtn").onclick=async()=>{
-  const s=await getDocs(collection(db,"members"));
-  let csv="Name,Adm,Year,Phone,Date\n";
-  s.forEach(d=>{ const x=d.data(); csv+=`"${x.name}","${x.adm}","${x.year}","${x.phone}","${x.date}"\n`; });
-  const b=new Blob([csv],{type:'text/csv'}); const l=document.createElement("a"); l.href=URL.createObjectURL(b); l.download="PUYOLA_Members.csv"; l.click();
-};
-
-window.delItem=async(c,i)=>{ if(confirm("Confirm deletion?")) await deleteDoc(doc(db,c,i)); };
+window.delItem=async(c,i)=>{ if(confirm("Delete?")) await deleteDoc(doc(db,c,i)); };
+window.toggleTable=(id)=>{ document.getElementById(id).classList.toggle("hidden"); };
 </script>
 </body>
 </html>
