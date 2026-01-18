@@ -18,9 +18,11 @@ button{background:#003366;color:#fff;border:none;padding:10px 15px;margin:5px 0;
 button:hover{opacity:0.9}
 footer{text-align:center;background:#eee;padding:20px;margin-top:20px}
 table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff}
-th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.9em}
+th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.8em}
 th{background:#003366;color:#fff}
 .poll-result{background:#eef; padding:8px; margin:4px 0; border-radius:4px; font-size: 0.9em; border-left: 4px solid #003366;}
+.btn-edit{background:#ffc107; color: #000; padding: 4px 8px; margin-right: 5px;}
+.btn-del{background:#dc3545; color: #fff; padding: 4px 8px;}
 </style>
 </head>
 
@@ -42,7 +44,7 @@ th{background:#003366;color:#fff}
 </header>
 
 <div class="card">
-    <h3>Creation Tools</h3>
+    <h3 id="adminFormTitle">Creation Tools</h3>
     <button onclick="document.getElementById('formArea').classList.toggle('hidden')">Toggle Forms</button>
     <div id="formArea" class="hidden">
         <input id="aTitle" placeholder="Announcement Title">
@@ -63,13 +65,20 @@ th{background:#003366;color:#fff}
 </div>
 
 <div class="card">
-    <h3>Attendance Records</h3>
-    <button id="exportBtn" style="background: #28a745; margin-bottom:10px">Export Excel</button>
+    <h3>Attendance Management</h3>
+    <div id="editZone" class="hidden" style="background:#fff9e6; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin-bottom:10px;">
+        <strong>Editing Record:</strong>
+        <input id="editName" placeholder="Name">
+        <input id="editAdm" placeholder="Admission">
+        <button id="saveEditBtn" style="background:#28a745">Save Changes</button>
+        <button onclick="document.getElementById('editZone').classList.add('hidden')" style="background:#6c757d">Cancel</button>
+    </div>
+    <button id="exportBtn" style="background: #28a745; margin-bottom:10px">Export to CSV (Excel Compatible)</button>
     <div style="overflow-x:auto;">
-        <table id="attendanceTable">
+        <table>
             <thead>
                 <tr>
-                    <th>Name</th><th>Adm</th><th>Year</th><th>Phone</th><th>Event</th><th>Action</th>
+                    <th>Name</th><th>Adm</th><th>Year</th><th>Phone</th><th>Event</th><th>Actions</th>
                 </tr>
             </thead>
             <tbody id="adminAttendance"></tbody>
@@ -113,7 +122,7 @@ th{background:#003366;color:#fff}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
@@ -127,6 +136,7 @@ const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
 const ADMIN="Puyola@0032542025", MEMBER="Puyola@2025";
+let currentEditId = null;
 
 /* DOM ELEMENTS */
 const loginBox=document.getElementById("loginBox"), adminView=document.getElementById("adminView"), memberView=document.getElementById("memberView");
@@ -143,9 +153,7 @@ document.getElementById("loginBtn").onclick=()=>{
 };
 
 window.logout=()=>{
-  adminView.classList.add("hidden");
-  memberView.classList.add("hidden");
-  loginBox.classList.remove("hidden");
+  adminView.classList.add("hidden"); memberView.classList.add("hidden"); loginBox.classList.remove("hidden");
   document.getElementById("loginPassword").value="";
 };
 
@@ -168,6 +176,30 @@ document.getElementById("submitAttendance").onclick=async()=>{
   if(!mName.value || !mEventSelect.value) return alert("Please fill Name and Select Event");
   await addDoc(collection(db,"attendance"),{name:mName.value, adm:mAdm.value, year:mYear.value, phone:mPhone.value, event:mEventSelect.value, time:new Date().toLocaleString()});
   alert("Success!"); mName.value=""; mAdm.value=""; mPhone.value="";
+};
+
+/* EDIT ATTENDANCE LOGIC */
+window.prepareEdit = async (id) => {
+    const docSnap = await getDoc(doc(db, "attendance", id));
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        currentEditId = id;
+        document.getElementById("editName").value = data.name;
+        document.getElementById("editAdm").value = data.adm;
+        document.getElementById("editZone").classList.remove("hidden");
+        window.scrollTo(0, 0);
+    }
+};
+
+document.getElementById("saveEditBtn").onclick = async () => {
+    if(!currentEditId) return;
+    await updateDoc(doc(db, "attendance", currentEditId), {
+        name: document.getElementById("editName").value,
+        adm: document.getElementById("editAdm").value
+    });
+    alert("Updated!");
+    document.getElementById("editZone").classList.add("hidden");
+    currentEditId = null;
 };
 
 /* LOADERS */
@@ -203,7 +235,10 @@ function loadAttendance(){
       const x=d.data();
       adminAttendance.innerHTML+=`<tr>
         <td>${x.name}</td><td>${x.adm}</td><td>${x.year}</td><td>${x.phone}</td><td>${x.event}</td>
-        <td><button onclick="window.delItem('attendance','${d.id}')" style="background:red;padding:2px 6px">X</button></td>
+        <td>
+            <button class="btn-edit" onclick="window.prepareEdit('${d.id}')">Edit</button>
+            <button class="btn-del" onclick="window.delItem('attendance','${d.id}')">Del</button>
+        </td>
       </tr>`;
     });
   });
@@ -216,7 +251,6 @@ async function loadPolls(){
     const p=d.data();
     let res=""; for(let o in p.votes){ res+=`<div class="poll-result">${o}: <b>${p.votes[o]}</b></div>`; }
     adminPolls.innerHTML+=`<div class="card"><b>${p.title}</b>${res}<button onclick="window.delItem('polls','${d.id}')">Delete</button></div>`;
-    
     let voted=localStorage.getItem("voted_"+d.id);
     let mH=`<div class="card"><b>${p.title}</b><br>`;
     if(p.status==="active" && !voted){
@@ -227,21 +261,30 @@ async function loadPolls(){
 }
 
 /* GLOBALS */
-window.delItem=async(col,id)=>{ if(confirm("Permanently Delete?")){ await deleteDoc(doc(db,col,id)); loadAll(); } };
+window.delItem=async(col,id)=>{ if(confirm("Permanently Delete?")){ await deleteDoc(doc(db,col,id)); } };
 
 window.vote=async(id,opt)=>{
   await updateDoc(doc(db,"polls",id),{[`votes.${opt}`]:increment(1)});
   localStorage.setItem("voted_"+id,true); loadPolls();
 };
 
-document.getElementById("exportBtn").onclick=()=>{
-  let table = document.getElementById("attendanceTable");
-  let html = table.outerHTML;
-  let url = 'data:application/vnd.ms-excel,' + encodeURIComponent(html);
-  let link = document.createElement("a");
-  link.href = url;
-  link.download = "Puyola_Attendance.xls";
-  link.click();
+/* IMPROVED EXCEL/CSV EXPORT */
+document.getElementById("exportBtn").onclick = async () => {
+    const snap = await getDocs(collection(db, "attendance"));
+    let csv = "Name,Admission,Year,Phone,Event,Time\n";
+    snap.forEach(d => {
+        const x = d.data();
+        csv += `"${x.name}","${x.adm}","${x.year}","${x.phone}","${x.event}","${x.time}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "PUYOLA_Attendance_Report.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
 document.getElementById("year").textContent=new Date().getFullYear();
