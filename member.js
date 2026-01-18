@@ -3,93 +3,86 @@ import {
   collection,
   getDocs,
   updateDoc,
-  doc,
-  getDoc
+  doc
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+const memberId = localStorage.getItem("puyola_member_id");
 
 // EVENTS
 async function loadEvents() {
   const snapshot = await getDocs(collection(db, "events"));
-  const list = document.getElementById("events-list");
-  list.innerHTML = "";
-
-  snapshot.forEach(d => {
-    const data = d.data();
-    list.innerHTML += `
-      <div class="item">
-        <strong>${data.title || "No Title"}</strong>
-        <div>${data.date || "No Date"}</div>
-      </div>
-    `;
+  const container = document.getElementById("events-list");
+  container.innerHTML = "";
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    container.innerHTML += `<div class="item"><strong>${data.title || "No Title"}</strong> - ${data.date || "No Date"}</div>`;
   });
 }
 
-// POLLS
+// POLLS (member can vote if active)
 async function loadPolls() {
   const snapshot = await getDocs(collection(db, "polls"));
-  const list = document.getElementById("polls-list");
-  list.innerHTML = "";
+  const container = document.getElementById("polls-list");
+  container.innerHTML = "";
 
-  snapshot.forEach(d => {
-    const data = d.data();
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const pollId = docSnap.id;
 
-    let buttons = "";
+    const alreadyVoted = (data.votedBy || []).includes(memberId);
 
-    if (data.status === "active") {
-      buttons = data.options
-        .map(
-          opt =>
-            `<button onclick="vote('${d.id}','${opt}')">${opt}</button>`
-        )
-        .join(" ");
-    } else {
-      buttons = "<em>Poll closed</em>";
-    }
+    const voteButtons = data.status === "active"
+      ? (alreadyVoted
+          ? `<em>You already voted</em>`
+          : data.options?.map(opt => `<button onclick='vote("${pollId}","${opt}")'>${opt}</button>`).join(" "))
+      : `<em>Poll closed</em>`;
 
-    list.innerHTML += `
+    container.innerHTML += `
       <div class="item">
-        <strong>${data.title || "No Title"}</strong>
-        <div>Status: ${data.status || "inactive"}</div>
-        <div>${buttons}</div>
+        <strong>${data.title || "No Title"}</strong> 
+        <div>${voteButtons || "No options"}</div>
       </div>
     `;
   });
 }
 
-// Vote
+// Handle voting
 window.vote = async (pollId, option) => {
   const pollRef = doc(db, "polls", pollId);
-  const pollSnap = await getDoc(pollRef);
-  const data = pollSnap.data();
+  const pollSnap = await getDocs(collection(db, "polls"));
+  const docSnap = pollSnap.docs.find(d => d.id === pollId);
+  const data = docSnap.data();
+
+  const alreadyVoted = (data.votedBy || []).includes(memberId);
+  if (alreadyVoted) {
+    alert("You already voted.");
+    return;
+  }
 
   const votes = data.votes || [];
   votes.push(option);
 
-  await updateDoc(pollRef, { votes });
-  alert("Vote recorded!");
+  const votedBy = data.votedBy || [];
+  votedBy.push(memberId);
+
+  await updateDoc(pollRef, { votes, votedBy });
+
+  alert(`You voted: ${option}`);
   loadPolls();
-}
+};
 
 // ANNOUNCEMENTS
 async function loadAnnouncements() {
   const snapshot = await getDocs(collection(db, "announcements"));
-  const list = document.getElementById("announcements-list");
-  list.innerHTML = "";
-
-  snapshot.forEach(d => {
-    const data = d.data();
-    list.innerHTML += `
-      <div class="item">
-        <strong>${data.title || "No Title"}</strong>
-        <div>${data.body || ""}</div>
-      </div>
-    `;
+  const container = document.getElementById("announcements-list");
+  container.innerHTML = "";
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    container.innerHTML += `<div class="item"><strong>${data.title || "No Title"}</strong>: ${data.body || ""}</div>`;
   });
 }
 
-// Load all
-window.addEventListener("load", () => {
-  loadEvents();
-  loadPolls();
-  loadAnnouncements();
-});
+// INITIAL LOAD
+loadEvents();
+loadPolls();
+loadAnnouncements();
