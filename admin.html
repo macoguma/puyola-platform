@@ -1,71 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>PUYOLA Admin Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- HEADER -->
   <header>
-    <img src="logo.png" alt="PUYOLA Logo" class="logo">
-    <h1>PUYOLA – Admin Dashboard</h1>
-    <p>Building Leaders. Building Legacy.</p>
+    <img src="logo.png" alt="PUYOLA Logo" class="logo" />
+    <h1>Admin Dashboard</h1>
   </header>
 
-  <!-- MAIN CONTENT -->
   <main>
-
-    <!-- EVENTS -->
     <section>
-      <h2>📅 Events</h2>
-      <button onclick="addEvent()">➕ Add Event</button>
-      <div id="events-list">
-        <!-- Events load here dynamically -->
-      </div>
+      <h2>Events</h2>
+      <button onclick="addEvent()">Add Event</button>
+      <div id="events-list"></div>
     </section>
 
-    <hr>
-
-    <!-- POLLS -->
     <section>
-      <h2>🗳 Polls</h2>
-      <button onclick="addPoll()">➕ Create Poll</button>
-      <div id="polls-list">
-        <!-- Polls load here dynamically -->
-      </div>
+      <h2>Polls</h2>
+      <button onclick="addPoll()">Add Poll</button>
+      <div id="polls-list"></div>
     </section>
 
-    <hr>
-
-    <!-- ANNOUNCEMENTS -->
     <section>
-      <h2>📢 Announcements</h2>
-      <button onclick="addAnnouncement()">➕ Add Announcement</button>
-      <div id="announcements-list">
-        <!-- Announcements load here dynamically -->
-      </div>
+      <h2>Announcements</h2>
+      <button onclick="addAnnouncement()">Add Announcement</button>
+      <div id="announcements-list"></div>
     </section>
-
   </main>
 
-  <!-- FOOTER -->
   <footer>
-    <p>
-      Copyright © <span id="year"></span> PUYOLA |
-      Designed by Oguma Austine | All Rights Reserved
-    </p>
+    Copyright <span id="year"></span> PUYOLA |
+    Designed by Oguma Austine | All Rights Reserved
   </footer>
 
-  <!-- YEAR SCRIPT -->
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 
-  <!-- FIREBASE + ADMIN LOGIC -->
   <script type="module" src="firebase-config.js"></script>
   <script type="module" src="admin.js"></script>
-
 </body>
 </html>
