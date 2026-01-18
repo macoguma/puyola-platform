@@ -2,28 +2,30 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PUYOLA Online Platform</title>
 
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;color:#333}
 header{background:#003366;color:#fff;padding:15px;text-align:center}
 header img{height:70px}
-section{padding:20px}
-.card{background:#fff;padding:15px;margin:10px 0;border-radius:6px}
+section{padding:20px; max-width: 800px; margin: auto;}
+.card{background:#fff;padding:15px;margin:10px 0;border-radius:6px;box-shadow: 0 2px 4px rgba(0,0,0,0.1)}
 .hidden{display:none}
-input,textarea{width:100%;padding:8px;margin:5px 0}
-button{background:#003366;color:#fff;border:none;padding:7px 12px;margin:4px 0;cursor:pointer}
+input,textarea{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:4px;box-sizing: border-box;}
+button{background:#003366;color:#fff;border:none;padding:10px 15px;margin:5px 0;border-radius:4px;cursor:pointer;font-weight:bold}
+button:hover{background:#004a94}
 button:disabled{background:#999}
-footer{text-align:center;background:#eee;padding:10px}
-small{color:#555}
+footer{text-align:center;background:#eee;padding:20px;margin-top:20px}
+small{color:#666}
+.poll-result{background:#eef; padding:8px; margin:4px 0; border-radius:4px; font-size: 0.9em;}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginBox" class="card" style="max-width:400px;margin:80px auto;text-align:center">
-  <img src="logo.png">
+  <img src="logo.png" alt="PUYOLA Logo" style="width:100px; height:auto; margin-bottom:10px;">
   <h2>PUYOLA</h2>
   <p><b>Building Leaders. Building Legacy.</b></p>
   <input type="password" id="loginPassword" placeholder="Enter password">
@@ -31,52 +33,49 @@ small{color:#555}
   <button id="loginBtn">Login</button>
 </div>
 
-<!-- ADMIN -->
 <section id="adminView" class="hidden">
 <header>Admin Dashboard</header>
 
 <div class="card">
-<h3>Create Announcement</h3>
-<input id="aTitle" placeholder="Title">
-<textarea id="aBody" placeholder="Message"></textarea>
-<button id="postAnnouncement">Post</button>
+    <h3>Create Announcement</h3>
+    <input id="aTitle" placeholder="Title">
+    <textarea id="aBody" placeholder="Message/Details" rows="3"></textarea>
+    <button id="postAnnouncement">Post Announcement</button>
 </div>
 
 <div class="card">
-<h3>Create Event</h3>
-<input id="eTitle" placeholder="Event title">
-<button id="addEvent">Add</button>
+    <h3>Create Event</h3>
+    <input id="eTitle" placeholder="Event Title">
+    <input type="date" id="eDate">
+    <input type="time" id="eTime">
+    <input id="eVenue" placeholder="Venue/Location">
+    <button id="addEvent">Add Event</button>
 </div>
 
 <div class="card">
-<h3>Create Poll</h3>
-<input id="pTitle" placeholder="Poll question">
-<input id="pOptions" placeholder="Options (comma separated)">
-<input type="number" id="pDuration" placeholder="Duration (minutes)">
-<button id="startPoll">Start Poll</button>
+    <h3>Create Poll</h3>
+    <input id="pTitle" placeholder="Poll Question">
+    <input id="pOptions" placeholder="Options (comma separated, e.g. Yes, No, Maybe)">
+    <input type="number" id="pDuration" placeholder="Duration (minutes)">
+    <button id="startPoll">Start Poll</button>
 </div>
 
-<h3>Announcements</h3>
+<hr>
+<h3>Manage Content</h3>
 <div id="adminAnnouncements"></div>
-
-<h3>Events</h3>
 <div id="adminEvents"></div>
-
-<h3>Polls</h3>
 <div id="adminPolls"></div>
 </section>
 
-<!-- MEMBER -->
 <section id="memberView" class="hidden">
 <header>Member Dashboard</header>
-
-<h3>Announcements</h3>
+<h3>Latest Announcements</h3>
 <div id="memberAnnouncements"></div>
 
-<h3>Events</h3>
+<h3>Upcoming Events</h3>
 <div id="memberEvents"></div>
 
-<h3>Polls</h3>
+<h3>Active Polls</h3>
 <div id="memberPolls"></div>
 </section>
 
@@ -86,9 +85,8 @@ small{color:#555}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* FIREBASE */
 const firebaseConfig={
   apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
   authDomain:"puyola-platform.firebaseapp.com",
@@ -104,122 +102,115 @@ const db=getFirestore(app);
 const ADMIN="Puyola@0032542025";
 const MEMBER="Puyola@2025";
 
-/* ELEMENTS */
-const loginBox=document.getElementById("loginBox");
-const adminView=document.getElementById("adminView");
-const memberView=document.getElementById("memberView");
+/* DOM ELEMENTS */
+const loginBox=document.getElementById("loginBox"), adminView=document.getElementById("adminView"), memberView=document.getElementById("memberView");
+const aTitle=document.getElementById("aTitle"), aBody=document.getElementById("aBody");
+const eTitle=document.getElementById("eTitle"), eDate=document.getElementById("eDate"), eTime=document.getElementById("eTime"), eVenue=document.getElementById("eVenue");
+const pTitle=document.getElementById("pTitle"), pOptions=document.getElementById("pOptions"), pDuration=document.getElementById("pDuration");
+const adminAnnouncements=document.getElementById("adminAnnouncements"), memberAnnouncements=document.getElementById("memberAnnouncements");
+const adminEvents=document.getElementById("adminEvents"), memberEvents=document.getElementById("memberEvents");
+const adminPolls=document.getElementById("adminPolls"), memberPolls=document.getElementById("memberPolls");
 
-/* LOGIN */
+/* LOGIN LOGIC */
 document.getElementById("loginBtn").onclick=()=>{
   const pass=document.getElementById("loginPassword").value;
   if(pass===ADMIN){
-    loginBox.classList.add("hidden");
-    adminView.classList.remove("hidden");
-    loadAll();
+    loginBox.classList.add("hidden"); adminView.classList.remove("hidden"); loadAll();
   }else if(pass===MEMBER){
-    loginBox.classList.add("hidden");
-    memberView.classList.remove("hidden");
-    loadAll();
-  }else alert("Wrong password");
+    loginBox.classList.add("hidden"); memberView.classList.remove("hidden"); loadAll();
+  }else alert("Incorrect Password");
 };
 
 document.getElementById("togglePass").onchange=e=>{
-  loginPassword.type=e.target.checked?"text":"password";
+  document.getElementById("loginPassword").type=e.target.checked?"text":"password";
 };
 
 /* ADMIN ACTIONS */
-postAnnouncement.onclick=async()=>{
-  await addDoc(collection(db,"announcements"),{title:aTitle.value,body:aBody.value});
-  aTitle.value="";aBody.value="";
-  loadAnnouncements();
+document.getElementById("postAnnouncement").onclick=async()=>{
+  if(!aTitle.value) return alert("Title required");
+  await addDoc(collection(db,"announcements"),{title:aTitle.value, body:aBody.value, date: new Date().toLocaleString()});
+  aTitle.value=""; aBody.value=""; loadAnnouncements();
 };
 
-addEvent.onclick=async()=>{
-  await addDoc(collection(db,"events"),{title:eTitle.value});
-  eTitle.value="";
-  loadEvents();
+document.getElementById("addEvent").onclick=async()=>{
+  if(!eTitle.value) return alert("Event title required");
+  await addDoc(collection(db,"events"),{title:eTitle.value, date:eDate.value, time:eTime.value, venue:eVenue.value});
+  eTitle.value=""; eDate.value=""; eTime.value=""; eVenue.value=""; loadEvents();
 };
 
-startPoll.onclick=async()=>{
+document.getElementById("startPoll").onclick=async()=>{
   const options=pOptions.value.split(",").map(o=>o.trim());
+  if(!pTitle.value || options.length < 2) return alert("Enter question and at least 2 options");
+  const votesObj = {};
+  options.forEach(opt => votesObj[opt] = 0);
+
   await addDoc(collection(db,"polls"),{
-    title:pTitle.value,
-    options,
-    votes:{},
-    status:"active",
-    end:Date.now()+pDuration.value*60000
+    title:pTitle.value, options, votes: votesObj, status:"active", end:Date.now()+(pDuration.value*60000)
   });
-  pTitle.value="";pOptions.value="";pDuration.value="";
-  loadPolls();
+  pTitle.value=""; pOptions.value=""; pDuration.value=""; loadPolls();
 };
 
 /* LOADERS */
-async function loadAll(){
-  loadAnnouncements();
-  loadEvents();
-  loadPolls();
-}
+async function loadAll(){ loadAnnouncements(); loadEvents(); loadPolls(); }
 
 async function loadAnnouncements(){
-  adminAnnouncements.innerHTML="";
-  memberAnnouncements.innerHTML="";
+  adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="";
   const snap=await getDocs(collection(db,"announcements"));
   snap.forEach(d=>{
     const x=d.data();
-    adminAnnouncements.innerHTML+=`
-    <div class="card"><b>${x.title}</b><br>${x.body}
-    <br><button onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`;
-    memberAnnouncements.innerHTML+=`<div class="card"><b>${x.title}</b><br>${x.body}</div>`;
+    const html=`<div class="card"><b>${x.title}</b><br><small>${x.date || ""}</small><p>${x.body}</p>`;
+    adminAnnouncements.innerHTML += html + `<button onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`;
+    memberAnnouncements.innerHTML += html + `</div>`;
   });
 }
 
 async function loadEvents(){
-  adminEvents.innerHTML="";
-  memberEvents.innerHTML="";
+  adminEvents.innerHTML="<h4>Events</h4>"; memberEvents.innerHTML="";
   const snap=await getDocs(collection(db,"events"));
   snap.forEach(d=>{
-    adminEvents.innerHTML+=`
-    <div class="card">${d.data().title}
-    <br><button onclick="window.delItem('events','${d.id}')">Delete</button></div>`;
-    memberEvents.innerHTML+=`<div class="card">${d.data().title}</div>`;
+    const x=d.data();
+    const html=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | ⏰ ${x.time}<br>📍 Venue: ${x.venue}</div>`;
+    adminEvents.innerHTML += html.replace('</div>', `<br><button onclick="window.delItem('events','${d.id}')">Delete</button></div>`);
+    memberEvents.innerHTML += html;
   });
 }
 
 async function loadPolls(){
-  adminPolls.innerHTML="";
-  memberPolls.innerHTML="";
+  adminPolls.innerHTML="<h4>Polls</h4>"; memberPolls.innerHTML="";
   const snap=await getDocs(collection(db,"polls"));
   snap.forEach(async d=>{
     const p=d.data();
     if(p.status==="active" && Date.now()>p.end){
       await updateDoc(doc(db,"polls",d.id),{status:"closed"});
-      return;
+      loadPolls(); return;
     }
 
-    adminPolls.innerHTML+=`
-    <div class="card"><b>${p.title}</b><br>Status:${p.status}
-    <br><button onclick="window.closePoll('${d.id}')">Close</button>
-    <button onclick="window.exportPoll('${p.title}')">Export Excel</button>
-    <button onclick="window.delItem('polls','${d.id}')">Delete</button></div>`;
+    let resultsHtml = "";
+    p.options.forEach(opt => {
+        const count = p.votes ? (p.votes[opt] || 0) : 0;
+        resultsHtml += `<div class="poll-result">${opt}: <b>${count} votes</b></div>`;
+    });
+
+    adminPolls.innerHTML+=`<div class="card"><b>${p.title}</b> (Status: ${p.status}) ${resultsHtml}
+      <button onclick="window.closePoll('${d.id}')">Close Poll</button>
+      <button onclick="window.delItem('polls','${d.id}')">Delete</button></div>`;
 
     let voted=localStorage.getItem("voted_"+d.id);
-    let html=`<div class="card"><b>${p.title}</b><br>`;
-    if(p.status==="active"&&!voted){
-      p.options.forEach(o=>{
-        html+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `;
-      });
-    }else{
-      html+="<small>Voting closed</small>";
+    let mHtml=`<div class="card"><b>${p.title}</b><br>`;
+    if(p.status==="active" && !voted){
+      p.options.forEach(o=>{ mHtml+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `; });
+    } else {
+      mHtml += `<small>Voting finished. Results:</small>${resultsHtml}`;
     }
-    html+="</div>";
-    memberPolls.innerHTML+=html;
+    memberPolls.innerHTML += mHtml + "</div>";
   });
 }
 
-/* GLOBAL ACTIONS */
-window.vote=(id,opt)=>{
+/* GLOBAL FUNCTIONS */
+window.vote=async(id,opt)=>{
+  await updateDoc(doc(db,"polls",id),{ [`votes.${opt}`]: increment(1) });
   localStorage.setItem("voted_"+id,true);
-  alert("Vote recorded");
+  alert("Vote recorded!");
   loadPolls();
 };
 
@@ -229,23 +220,13 @@ window.closePoll=async(id)=>{
 };
 
 window.delItem=async(col,id)=>{
-  if(confirm("Delete?")){
+  if(confirm("Are you sure?")){
     await deleteDoc(doc(db,col,id));
     loadAll();
   }
 };
 
-window.exportPoll=(title)=>{
-  const blob=new Blob([title],{type:"application/vnd.ms-excel"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=title+".xls";
-  a.click();
-};
-
-/* FOOTER */
 document.getElementById("year").textContent=new Date().getFullYear();
 </script>
-
 </body>
-  </html>
+</html>
