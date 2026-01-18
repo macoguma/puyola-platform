@@ -28,7 +28,7 @@ th{background:#003366;color:#fff}
 .badge{background:#28a745; color:white; padding:2px 8px; border-radius:10px; font-size:0.8em; margin-left:10px}
 .poll-res{background:#eef; padding:8px; margin:4px 0; border-radius:4px; border-left:4px solid #003366; font-size:0.9em}
 .timer{color:#dc3545; font-weight:bold; font-size:0.85em}
-.toggle-btn{background:#6c757d; font-size:0.8em; margin-bottom:10px;}
+.toggle-btn{background:#6c757d; font-size:0.8em; margin-bottom:10px; width:100%}
 </style>
 </head>
 
@@ -60,7 +60,7 @@ th{background:#003366;color:#fff}
     </div>
 
     <div id="regSection">
-        <button class="toggle-btn" onclick="window.toggleTable('memberTableWrapper')">Toggle Member List View</button>
+        <button class="toggle-btn" onclick="window.toggleTable('memberTableWrapper')">Show/Hide Member List</button>
         <div id="memberTableWrapper" class="hidden">
             <input type="text" placeholder="Search members..." oninput="window.filterTable('adminMembers', this.value)">
             <button id="exportMembersBtn" style="background: #28a745">Export Members (CSV)</button>
@@ -69,7 +69,7 @@ th{background:#003366;color:#fff}
     </div>
 
     <div id="attSection" class="hidden">
-        <button class="toggle-btn" onclick="window.toggleTable('attendTableWrapper')">Toggle Attendance List View</button>
+        <button class="toggle-btn" onclick="window.toggleTable('attendTableWrapper')">Show/Hide Attendance List</button>
         <div id="attendTableWrapper" class="hidden">
             <input type="text" placeholder="Search attendance..." oninput="window.filterTable('adminAttendance', this.value)">
             <button id="exportAttendanceBtn" style="background: #28a745">Export Attendance (CSV)</button>
@@ -79,7 +79,7 @@ th{background:#003366;color:#fff}
 </div>
 
 <div class="card">
-    <button onclick="document.getElementById('formArea').classList.toggle('hidden')">Creation Tools</button>
+    <button onclick="document.getElementById('formArea').classList.toggle('hidden')" style="width:100%">Open Creation Tools</button>
     <div id="formArea" class="hidden">
         <h4>Create New Poll</h4>
         <input id="pTitle" placeholder="Poll Question">
@@ -88,7 +88,8 @@ th{background:#003366;color:#fff}
         <button id="startPoll">Start Poll</button>
         <hr>
         <h4>Events & Announcements</h4>
-        <input id="aTitle" placeholder="Title"><textarea id="aBody" placeholder="Message"></textarea><button id="postAnnouncement">Post</button>
+        <input id="aTitle" placeholder="Announcement Title"><textarea id="aBody" placeholder="Message Body"></textarea>
+        <button id="postAnnouncement">Post Announcement</button>
         <hr>
         <input id="eTitle" placeholder="Event Name">
         <input type="date" id="eDate">
@@ -104,8 +105,8 @@ th{background:#003366;color:#fff}
 <section id="memberView" class="hidden">
 <header>Member Dashboard <button class="logout-btn" onclick="window.logout()">Logout</button></header>
 <div class="card">
-    <h3>Join PUYOLA</h3>
-    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No"><select id="regYear"><option value="">Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select><input id="regPhone" placeholder="Phone"><button id="submitRegistration" style="width:100%; background:#28a745">Register</button>
+    <h3>Join PUYOLA (Membership)</h3>
+    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No"><select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select><input id="regPhone" placeholder="Phone"><button id="submitRegistration" style="width:100%; background:#28a745">Register</button>
 </div>
 <div class="card">
     <h3>Event Attendance</h3>
@@ -121,7 +122,7 @@ th{background:#003366;color:#fff}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, query, where, increment } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, increment, query, where } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
@@ -137,7 +138,7 @@ const db=getFirestore(app);
 const ADMIN="Puyola@0032542025", MEMBER="Puyola@2025";
 let currentEditId=null, currentEditCol="";
 
-/* SESSION */
+/* SESSION HANDLER */
 window.onload=()=>{
     const s=localStorage.getItem("puyola_session");
     if(s==="admin"){ loginBox.classList.add("hidden"); adminView.classList.remove("hidden"); loadAll(); }
@@ -175,17 +176,22 @@ document.getElementById("startPoll").onclick=async()=>{
       votes: votes,
       expiry: new Date().getTime() + durationMs
   });
-  alert("Poll Started!"); loadPolls();
+  alert("Poll Started!"); 
 };
 
 document.getElementById("postAnnouncement").onclick=async()=>{
   await addDoc(collection(db,"announcements"), { title: aTitle.value, body: aBody.value });
-  alert("Posted!"); loadAnnouncements();
+  alert("Announcement Posted!"); aTitle.value=""; aBody.value="";
 };
 
 document.getElementById("addEvent").onclick=async()=>{
-  await addDoc(collection(db,"events"), { title: eTitle.value, date: eDate.value, time: eTime.value, venue: eVenue.value });
-  alert("Event Added!"); loadEvents();
+  await addDoc(collection(db,"events"), { 
+      title: eTitle.value, 
+      date: eDate.value, 
+      time: eTime.value, 
+      venue: eVenue.value 
+  });
+  alert("Event Added!"); eTitle.value=""; eVenue.value="";
 };
 
 window.vote=async(id,opt)=>{
@@ -223,10 +229,10 @@ window.prepareEdit=async(col,id)=>{
 document.getElementById("saveEditBtn").onclick=async()=>{
     await updateDoc(doc(db,currentEditCol,currentEditId), {name:editName.value, adm:editAdm.value});
     document.getElementById("editZone").classList.add("hidden");
-    alert("Record Updated!");
+    alert("Updated Successfully!");
 };
 
-/* LOADERS */
+/* REAL-TIME LOADERS */
 function loadAll(){ loadAdminData(); loadAnnouncements(); loadEvents(); loadPolls(); }
 
 function loadAdminData(){
@@ -263,36 +269,46 @@ function loadPolls(){
 function loadAnnouncements(){
     onSnapshot(collection(db,"announcements"),s=>{
       adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="<h3>Announcements</h3>";
-      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
+      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p><button class="btn-del admin-only" onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
     });
 }
 
 function loadEvents(){
     onSnapshot(collection(db,"events"), s=>{
       memberEvents.innerHTML="<h3>Events</h3>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
-      s.forEach(d=>{ const x=d.data(); memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`; mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; });
+      s.forEach(d=>{ 
+          const x=d.data(); 
+          memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}<br><button class="btn-del admin-only" onclick="window.delItem('events','${d.id}')">Delete</button></div>`; 
+          mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; 
+      });
     });
 }
 
-/* REGISTRATION SUBMIT WITH DUPLICATE CHECK */
+/* REGISTRATION WITH CASE-INSENSITIVE DUPLICATE CHECK */
 document.getElementById("submitRegistration").onclick=async()=>{
   const nameVal = regName.value.trim();
   const admVal = regAdm.value.trim();
+  if(!nameVal || !admVal) return alert("Fill Name and Admission No.");
 
-  if(!nameVal || !admVal) return alert("Please fill Name and Admission Number.");
+  // Fetch all members to check case-insensitive match
+  const snap = await getDocs(collection(db, "members"));
+  let duplicate = false;
+  snap.forEach(doc => {
+      const data = doc.data();
+      if(data.name.trim().toLowerCase() === nameVal.toLowerCase() && 
+         data.adm.trim().toLowerCase() === admVal.toLowerCase()) {
+          duplicate = true;
+      }
+  });
 
-  // Query Firebase for existing Name AND Admission
-  const q = query(collection(db, "members"), where("name", "==", nameVal), where("adm", "==", admVal));
-  const querySnapshot = await getDocs(q);
-
-  if (!querySnapshot.empty) {
-    alert("Details Exist! Update Instead.");
-    return;
+  if(duplicate){
+      alert("Details Exist! Update Instead.");
+      return;
   }
 
   await addDoc(collection(db,"members"),{name:nameVal, adm:admVal, year:regYear.value, phone:regPhone.value, date:new Date().toLocaleString()});
   alert("Welcome to PUYOLA!"); 
-  regName.value=""; regAdm.value=""; regYear.value=""; regPhone.value="";
+  regName.value=""; regAdm.value="";
 };
 
 document.getElementById("submitAttendance").onclick=async()=>{
@@ -300,7 +316,7 @@ document.getElementById("submitAttendance").onclick=async()=>{
   alert("Attendance Recorded!"); attName.value="";
 };
 
-/* CSV EXPORT */
+/* EXPORT CSV */
 document.getElementById("exportMembersBtn").onclick=async()=>{
   const s=await getDocs(collection(db,"members"));
   let csv="Name,Adm,Year,Phone,Date\n";
@@ -308,7 +324,7 @@ document.getElementById("exportMembersBtn").onclick=async()=>{
   const b=new Blob([csv],{type:'text/csv'}); const l=document.createElement("a"); l.href=URL.createObjectURL(b); l.download="PUYOLA_Members.csv"; l.click();
 };
 
-window.delItem=async(c,i)=>{ if(confirm("Delete permanently?")) await deleteDoc(doc(db,c,i)); };
+window.delItem=async(c,i)=>{ if(confirm("Confirm deletion?")) await deleteDoc(doc(db,c,i)); };
 document.getElementById("year").textContent=new Date().getFullYear();
 </script>
 </body>
