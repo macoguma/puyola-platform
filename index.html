@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PUYOLA Online Platform</title>
+
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4}
+header{background:#003366;color:#fff;padding:15px;text-align:center}
+header img{height:70px}
+section{padding:20px}
+.card{background:#fff;padding:15px;margin:10px 0;border-radius:6px}
+.hidden{display:none}
+input,textarea{width:100%;padding:8px;margin:5px 0}
+button{background:#003366;color:#fff;border:none;padding:7px 12px;margin:4px 0;cursor:pointer}
+button:disabled{background:#999}
+footer{text-align:center;background:#eee;padding:10px}
+small{color:#555}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginBox" class="card" style="max-width:400px;margin:80px auto;text-align:center">
+  <img src="logo.png">
+  <h2>PUYOLA</h2>
+  <p><b>Building Leaders. Building Legacy.</b></p>
+  <input type="password" id="loginPassword" placeholder="Enter password">
+  <label><input type="checkbox" id="togglePass"> Show Password</label><br>
+  <button id="loginBtn">Login</button>
+</div>
+
+<!-- ADMIN -->
+<section id="adminView" class="hidden">
+<header>Admin Dashboard</header>
+
+<div class="card">
+<h3>Create Announcement</h3>
+<input id="aTitle" placeholder="Title">
+<textarea id="aBody" placeholder="Message"></textarea>
+<button id="postAnnouncement">Post</button>
+</div>
+
+<div class="card">
+<h3>Create Event</h3>
+<input id="eTitle" placeholder="Event title">
+<button id="addEvent">Add</button>
+</div>
+
+<div class="card">
+<h3>Create Poll</h3>
+<input id="pTitle" placeholder="Poll question">
+<input id="pOptions" placeholder="Options (comma separated)">
+<input type="number" id="pDuration" placeholder="Duration (minutes)">
+<button id="startPoll">Start Poll</button>
+</div>
+
+<h3>Announcements</h3>
+<div id="adminAnnouncements"></div>
+
+<h3>Events</h3>
+<div id="adminEvents"></div>
+
+<h3>Polls</h3>
+<div id="adminPolls"></div>
+</section>
+
+<!-- MEMBER -->
+<section id="memberView" class="hidden">
+<header>Member Dashboard</header>
+
+<h3>Announcements</h3>
+<div id="memberAnnouncements"></div>
+
+<h3>Events</h3>
+<div id="memberEvents"></div>
+
+<h3>Polls</h3>
+<div id="memberPolls"></div>
+</section>
+
+<footer>
+© <span id="year"></span> PUYOLA | Designed by Oguma Austine | All Rights Reserved
+</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+/* FIREBASE */
+const firebaseConfig={
+  apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
+  authDomain:"puyola-platform.firebaseapp.com",
+  projectId:"puyola-platform",
+  storageBucket:"puyola-platform.firebasestorage.app",
+  messagingSenderId:"831659964215",
+  appId:"1:831659964215:web:6d568b43f4ad7f09af4cb2"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+/* PASSWORDS */
+const ADMIN="Puyola@0032542025";
+const MEMBER="Puyola@2025";
+
+/* ELEMENTS */
+const loginBox=document.getElementById("loginBox");
+const adminView=document.getElementById("adminView");
+const memberView=document.getElementById("memberView");
+
+/* LOGIN */
+document.getElementById("loginBtn").onclick=()=>{
+  const pass=document.getElementById("loginPassword").value;
+  if(pass===ADMIN){
+    loginBox.classList.add("hidden");
+    adminView.classList.remove("hidden");
+    loadAll();
+  }else if(pass===MEMBER){
+    loginBox.classList.add("hidden");
+    memberView.classList.remove("hidden");
+    loadAll();
+  }else alert("Wrong password");
+};
+
+document.getElementById("togglePass").onchange=e=>{
+  loginPassword.type=e.target.checked?"text":"password";
+};
+
+/* ADMIN ACTIONS */
+postAnnouncement.onclick=async()=>{
+  await addDoc(collection(db,"announcements"),{title:aTitle.value,body:aBody.value});
+  aTitle.value="";aBody.value="";
+  loadAnnouncements();
+};
+
+addEvent.onclick=async()=>{
+  await addDoc(collection(db,"events"),{title:eTitle.value});
+  eTitle.value="";
+  loadEvents();
+};
+
+startPoll.onclick=async()=>{
+  const options=pOptions.value.split(",").map(o=>o.trim());
+  await addDoc(collection(db,"polls"),{
+    title:pTitle.value,
+    options,
+    votes:{},
+    status:"active",
+    end:Date.now()+pDuration.value*60000
+  });
+  pTitle.value="";pOptions.value="";pDuration.value="";
+  loadPolls();
+};
+
+/* LOADERS */
+async function loadAll(){
+  loadAnnouncements();
+  loadEvents();
+  loadPolls();
+}
+
+async function loadAnnouncements(){
+  adminAnnouncements.innerHTML="";
+  memberAnnouncements.innerHTML="";
+  const snap=await getDocs(collection(db,"announcements"));
+  snap.forEach(d=>{
+    const x=d.data();
+    adminAnnouncements.innerHTML+=`
+    <div class="card"><b>${x.title}</b><br>${x.body}
+    <br><button onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`;
+    memberAnnouncements.innerHTML+=`<div class="card"><b>${x.title}</b><br>${x.body}</div>`;
+  });
+}
+
+async function loadEvents(){
+  adminEvents.innerHTML="";
+  memberEvents.innerHTML="";
+  const snap=await getDocs(collection(db,"events"));
+  snap.forEach(d=>{
+    adminEvents.innerHTML+=`
+    <div class="card">${d.data().title}
+    <br><button onclick="window.delItem('events','${d.id}')">Delete</button></div>`;
+    memberEvents.innerHTML+=`<div class="card">${d.data().title}</div>`;
+  });
+}
+
+async function loadPolls(){
+  adminPolls.innerHTML="";
+  memberPolls.innerHTML="";
+  const snap=await getDocs(collection(db,"polls"));
+  snap.forEach(async d=>{
+    const p=d.data();
+    if(p.status==="active" && Date.now()>p.end){
+      await updateDoc(doc(db,"polls",d.id),{status:"closed"});
+      return;
+    }
+
+    adminPolls.innerHTML+=`
+    <div class="card"><b>${p.title}</b><br>Status:${p.status}
+    <br><button onclick="window.closePoll('${d.id}')">Close</button>
+    <button onclick="window.exportPoll('${p.title}')">Export Excel</button>
+    <button onclick="window.delItem('polls','${d.id}')">Delete</button></div>`;
+
+    let voted=localStorage.getItem("voted_"+d.id);
+    let html=`<div class="card"><b>${p.title}</b><br>`;
+    if(p.status==="active"&&!voted){
+      p.options.forEach(o=>{
+        html+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `;
+      });
+    }else{
+      html+="<small>Voting closed</small>";
+    }
+    html+="</div>";
+    memberPolls.innerHTML+=html;
+  });
+}
+
+/* GLOBAL ACTIONS */
+window.vote=(id,opt)=>{
+  localStorage.setItem("voted_"+id,true);
+  alert("Vote recorded");
+  loadPolls();
+};
+
+window.closePoll=async(id)=>{
+  await updateDoc(doc(db,"polls",id),{status:"closed"});
+  loadPolls();
+};
+
+window.delItem=async(col,id)=>{
+  if(confirm("Delete?")){
+    await deleteDoc(doc(db,col,id));
+    loadAll();
+  }
+};
+
+window.exportPoll=(title)=>{
+  const blob=new Blob([title],{type:"application/vnd.ms-excel"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=title+".xls";
+  a.click();
+};
+
+/* FOOTER */
+document.getElementById("year").textContent=new Date().getFullYear();
+</script>
+
+</body>
+  </html>
