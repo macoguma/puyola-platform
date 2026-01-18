@@ -17,7 +17,7 @@ section{padding:20px; max-width: 900px; margin: auto;}
 input,textarea,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:4px;box-sizing: border-box;}
 button{background:#003366;color:#fff;border:none;padding:10px 15px;margin:5px 0;border-radius:4px;cursor:pointer;font-weight:bold}
 button:hover{opacity:0.9}
-footer{text-align:center;background:#eee;padding:20px;margin-top:20px}
+footer{text-align:center;background:#eee;padding:20px;margin-top:20px;font-size:0.9em;color:#555}
 table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff}
 th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.8em}
 th{background:#003366;color:#fff}
@@ -33,6 +33,7 @@ th{background:#003366;color:#fff}
 .contact-grid{display: flex; gap: 10px; margin-top: 10px;}
 .btn-email{background:#ea4335; flex:1; text-align:center; display:block; text-decoration:none; color:white; padding:10px; border-radius:4px;}
 .btn-whatsapp{background:#25d366; flex:1; text-align:center; display:block; text-decoration:none; color:white; padding:10px; border-radius:4px;}
+.anon-msg{background:#fff5f5; border-left: 5px solid #ff4d4d; padding: 10px; margin: 5px 0; font-style: italic;}
 </style>
 </head>
 
@@ -48,17 +49,16 @@ th{background:#003366;color:#fff}
 
 <section id="adminView" class="hidden">
 <header>Admin Dashboard <button class="logout-btn" onclick="window.logout()">Logout</button></header>
-
 <div class="card">
     <div class="tabs">
         <button class="tab-btn active" id="tabRegister" onclick="window.switchTab('reg')">Members <span id="regCount" class="badge">0</span></button>
         <button class="tab-btn" id="tabAttend" onclick="window.switchTab('att')">Attendance</button>
+        <button class="tab-btn" id="tabAnon" onclick="window.switchTab('anon')">Anonymous</button>
     </div>
-
+    
     <div id="editZone" class="hidden" style="background:#fff9e6; padding:10px; border-radius:5px; border:1px solid #ffeeba; margin-bottom:10px;">
         <strong>Editing Record:</strong>
-        <input id="editName" placeholder="Name">
-        <input id="editAdm" placeholder="Admission">
+        <input id="editName" placeholder="Name"><input id="editAdm" placeholder="Admission">
         <button id="saveEditBtn" style="background:#28a745">Update</button>
         <button onclick="document.getElementById('editZone').classList.add('hidden')" style="background:#6c757d">Cancel</button>
     </div>
@@ -80,26 +80,26 @@ th{background:#003366;color:#fff}
             <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Event</th><th>Time</th><th>Action</th></tr></thead><tbody id="adminAttendance"></tbody></table></div>
         </div>
     </div>
+
+    <div id="anonSection" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4>Anonymous Feedback</h4>
+            <button id="clearAllAnon" style="background:#dc3545; font-size:0.7em;">Clear All</button>
+        </div>
+        <div id="adminAnonList"></div>
+    </div>
 </div>
 
 <div class="card">
     <button onclick="document.getElementById('formArea').classList.toggle('hidden')" style="width:100%">Open Creation Tools</button>
     <div id="formArea" class="hidden">
         <h4>Create New Poll</h4>
-        <input id="pTitle" placeholder="Poll Question">
-        <input id="pOptions" placeholder="Options (comma separated)">
-        <input type="number" id="pDuration" placeholder="Duration (Minutes)">
-        <button id="startPoll">Start Poll</button>
+        <input id="pTitle" placeholder="Poll Question"><input id="pOptions" placeholder="Options (comma separated)"><input type="number" id="pDuration" placeholder="Duration (Minutes)"><button id="startPoll">Start Poll</button>
         <hr>
         <h4>Events & Announcements</h4>
-        <input id="aTitle" placeholder="Announcement Title"><textarea id="aBody" placeholder="Message Body"></textarea>
-        <button id="postAnnouncement">Post Announcement</button>
+        <input id="aTitle" placeholder="Announcement Title"><textarea id="aBody" placeholder="Message Body"></textarea><button id="postAnnouncement">Post Announcement</button>
         <hr>
-        <input id="eTitle" placeholder="Event Name">
-        <input type="date" id="eDate">
-        <input type="time" id="eTime">
-        <input id="eVenue" placeholder="Venue">
-        <button id="addEvent">Add Event</button>
+        <input id="eTitle" placeholder="Event Name"><input type="date" id="eDate"><input type="time" id="eTime"><input id="eVenue" placeholder="Venue"><button id="addEvent">Add Event</button>
     </div>
 </div>
 <div id="adminPolls"></div>
@@ -109,7 +109,6 @@ th{background:#003366;color:#fff}
 
 <section id="memberView" class="hidden">
 <header>Member Dashboard <button class="logout-btn" onclick="window.logout()">Logout</button></header>
-
 <div class="card">
     <h4 style="margin-top:0">Support & Feedback</h4>
     <div class="contact-grid">
@@ -118,29 +117,32 @@ th{background:#003366;color:#fff}
     </div>
 </div>
 
+<div class="card" style="background:#fefefe; border: 1px dashed #003366">
+    <h3 style="color:#003366"><i class="fas fa-user-secret"></i> Send Anonymous Message</h3>
+    <textarea id="anonInput" placeholder="Type your suggestion or feedback here... (No one will see who sent this)"></textarea>
+    <button id="sendAnon" style="width:100%; background:#003366">Send Message</button>
+</div>
+
 <div class="card">
     <h3>Join PUYOLA (Membership)</h3>
-    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No">
-    <select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
-    <input id="regPhone" placeholder="Phone">
-    <button id="submitRegistration" style="width:100%; background:#28a745">Register</button>
-    <button id="updateRegistration" style="width:100%; background:#ffc107; color:black">Update (To change Existing Details)</button>
+    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No"><select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select><input id="regPhone" placeholder="Phone"><button id="submitRegistration" style="width:100%; background:#28a745">Register</button><button id="updateRegistration" style="width:100%; background:#ffc107; color:black">Update (To change Existing Details)</button>
 </div>
 <div class="card">
     <h3>Event Attendance</h3>
     <input id="attName" placeholder="Full Name"><input id="attAdm" placeholder="Admission No"><select id="mEventSelect"><option value="">Select Event</option></select><button id="submitAttendance" style="width:100%">Sign-In</button>
 </div>
-
 <div id="memberPolls"></div>
 <div id="memberAnnouncements"></div>
 <div id="memberEvents"></div>
 </section>
 
-<footer>© <span id="year"></span> PUYOLA | Designed by Oguma Austine</footer>
+<footer>
+    Copyright ©️ <span id="year"></span> PUYOLA | Designed by Oguma Austine | All Rights Reserved
+</footer>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, increment, query, where } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, increment, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
@@ -160,6 +162,7 @@ window.onload=()=>{
     const s=localStorage.getItem("puyola_session");
     if(s==="admin"){ loginBox.classList.add("hidden"); adminView.classList.remove("hidden"); loadAll(); }
     else if(s==="member"){ loginBox.classList.add("hidden"); memberView.classList.remove("hidden"); loadAll(); }
+    document.getElementById("year").textContent=new Date().getFullYear();
 };
 
 document.getElementById("loginBtn").onclick=()=>{
@@ -172,34 +175,42 @@ document.getElementById("loginBtn").onclick=()=>{
 window.logout=()=>{ localStorage.removeItem("puyola_session"); location.reload(); };
 document.getElementById("togglePass").onchange=e=>{ document.getElementById("loginPassword").type=e.target.checked?"text":"password"; };
 
-function getTimerText(expiry){
-    const now = new Date().getTime();
-    const diff = expiry - now;
-    if(diff <= 0) return "Expired";
-    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const secs = Math.floor((diff % (1000 * 60)) / 1000);
-    return `${mins}m ${secs}s remaining`;
-}
+/* ANONYMOUS ACTIONS */
+document.getElementById("sendAnon").onclick=async()=>{
+    const msg = document.getElementById("anonInput").value.trim();
+    if(!msg) return alert("Please type something first!");
+    await addDoc(collection(db, "anonymous"), { text: msg, time: new Date().toLocaleString() });
+    alert("Message sent anonymously!");
+    document.getElementById("anonInput").value = "";
+};
 
-/* ADMIN POSTING ACTIONS */
+document.getElementById("clearAllAnon").onclick=async()=>{
+    if(confirm("Delete all anonymous messages forever?")){
+        const snap = await getDocs(collection(db, "anonymous"));
+        const batch = writeBatch(db);
+        snap.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        alert("Inbox cleared!");
+    }
+};
+
+/* OTHER ACTIONS */
 document.getElementById("startPoll").onclick=async()=>{
   const opts = document.getElementById("pOptions").value.split(",").map(o=>o.trim());
   let votes = {}; opts.forEach(o=>votes[o]=0);
   const durationMs = (parseInt(document.getElementById("pDuration").value) || 60) * 60000;
   await addDoc(collection(db,"polls"), { title: pTitle.value, options: opts, votes: votes, expiry: new Date().getTime() + durationMs });
   alert("Poll Started!"); 
-  pTitle.value=""; pOptions.value=""; pDuration.value="";
 };
 
 document.getElementById("postAnnouncement").onclick=async()=>{
   await addDoc(collection(db,"announcements"), { title: aTitle.value, body: aBody.value });
-  alert("Announcement Posted!"); aTitle.value=""; aBody.value="";
+  alert("Posted!"); aTitle.value=""; aBody.value="";
 };
 
 document.getElementById("addEvent").onclick=async()=>{
   await addDoc(collection(db,"events"), { title: eTitle.value, date: eDate.value, time: eTime.value, venue: eVenue.value });
   alert("Event Added!"); 
-  eTitle.value=""; eDate.value=""; eTime.value=""; eVenue.value="";
 };
 
 window.vote=async(id,opt)=>{
@@ -210,8 +221,10 @@ window.vote=async(id,opt)=>{
 window.switchTab=t=>{
     document.getElementById("regSection").classList.toggle("hidden", t!=='reg');
     document.getElementById("attSection").classList.toggle("hidden", t!=='att');
+    document.getElementById("anonSection").classList.toggle("hidden", t!=='anon');
     document.getElementById("tabRegister").classList.toggle("active", t==='reg');
     document.getElementById("tabAttend").classList.toggle("active", t==='att');
+    document.getElementById("tabAnon").classList.toggle("active", t==='anon');
 };
 
 window.toggleTable=(id)=>{ document.getElementById(id).classList.toggle("hidden"); };
@@ -238,7 +251,19 @@ document.getElementById("saveEditBtn").onclick=async()=>{
     alert("Updated!");
 };
 
-function loadAll(){ loadAdminData(); loadAnnouncements(); loadEvents(); loadPolls(); }
+/* LOADERS */
+function loadAll(){ loadAdminData(); loadAnnouncements(); loadEvents(); loadPolls(); loadAnon(); }
+
+function loadAnon(){
+    onSnapshot(collection(db, "anonymous"), s => {
+        adminAnonList.innerHTML = "";
+        if(s.empty) adminAnonList.innerHTML = "<p>No messages yet.</p>";
+        s.forEach(d => {
+            const x = d.data();
+            adminAnonList.innerHTML += `<div class="anon-msg">${x.text}<br><small style="color:#888">${x.time}</small> <button class="btn-del" style="font-size:0.6em; padding:2px 5px" onclick="window.delItem('anonymous','${d.id}')">Delete</button></div>`;
+        });
+    });
+}
 
 function loadAdminData(){
     onSnapshot(collection(db,"members"),s=>{
@@ -256,6 +281,14 @@ function loadPolls(){
         adminPolls.innerHTML="<h4>Manage Polls</h4>"; memberPolls.innerHTML="<h3>Active Polls</h3>";
         s.forEach(d=>{
             const p=d.data(); const isExpired = new Date().getTime() > p.expiry;
+            function getTimerText(expiry){
+                const now = new Date().getTime();
+                const diff = expiry - now;
+                if(diff <= 0) return "Expired";
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                return `${mins}m ${secs}s remaining`;
+            }
             let resHtml=""; for(let o in p.votes){ resHtml+=`<div class="poll-res">${o}: <b>${p.votes[o]}</b></div>`; }
             adminPolls.innerHTML+=`<div class="card"><b>${p.title}</b><br><span class="timer" id="timer-admin-${d.id}"></span>${resHtml}<button class="btn-del" onclick="window.delItem('polls','${d.id}')">Remove Poll</button></div>`;
             let mVoteHtml=`<div class="card"><b>${p.title}</b><br><span class="timer" id="timer-member-${d.id}"></span><br>`;
@@ -274,21 +307,18 @@ function loadPolls(){
 function loadAnnouncements(){
     onSnapshot(collection(db,"announcements"),s=>{
       adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="<h3>Announcements</h3>";
-      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p><button class="btn-del" onclick="window.delItem('announcements','${d.id}')">Delete Post</button></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
+      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p><button class="btn-del" onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
     });
 }
 
 function loadEvents(){
     onSnapshot(collection(db,"events"), s=>{
-      memberEvents.innerHTML="<h3>Events</h3>"; 
-      adminEventsList.innerHTML="<h4>Manage Events</h4>"; 
-      mEventSelect.innerHTML='<option value="">Select Event</option>';
+      memberEvents.innerHTML="<h3>Events</h3>"; adminEventsList.innerHTML="<h4>Manage Events</h4>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
       s.forEach(d=>{ 
           const x=d.data(); 
-          const eventHtml = `<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`;
-          memberEvents.innerHTML += eventHtml;
-          adminEventsList.innerHTML += `<div class="card"><b>${x.title}</b><br><button class="btn-del" onclick="window.delItem('events','${d.id}')">Delete Event</button></div>`;
-          mEventSelect.innerHTML += `<option value="${x.title}">${x.title}</option>`; 
+          memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`;
+          adminEventsList.innerHTML+=`<div class="card"><b>${x.title}</b><br><button class="btn-del" onclick="window.delItem('events','${d.id}')">Delete Event</button></div>`;
+          mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; 
       });
     });
 }
@@ -329,7 +359,6 @@ document.getElementById("exportMembersBtn").onclick=async()=>{
 };
 
 window.delItem=async(c,i)=>{ if(confirm("Confirm deletion?")) await deleteDoc(doc(db,c,i)); };
-document.getElementById("year").textContent=new Date().getFullYear();
 </script>
 </body>
 </html>
