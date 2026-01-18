@@ -28,6 +28,7 @@ th{background:#003366;color:#fff}
 .badge{background:#28a745; color:white; padding:2px 8px; border-radius:10px; font-size:0.8em; margin-left:10px}
 .poll-res{background:#eef; padding:8px; margin:4px 0; border-radius:4px; border-left:4px solid #003366; font-size:0.9em}
 .timer{color:#dc3545; font-weight:bold; font-size:0.85em}
+.toggle-btn{background:#6c757d; font-size:0.8em; margin-bottom:10px;}
 </style>
 </head>
 
@@ -59,15 +60,21 @@ th{background:#003366;color:#fff}
     </div>
 
     <div id="regSection">
-        <input type="text" placeholder="Search members..." oninput="window.filterTable('adminMembers', this.value)">
-        <button id="exportMembersBtn" style="background: #28a745">Export Members (CSV)</button>
-        <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Year</th><th>Phone</th><th>Joined</th><th>Action</th></tr></thead><tbody id="adminMembers"></tbody></table></div>
+        <button class="toggle-btn" onclick="window.toggleTable('memberTableWrapper')">Toggle Member List View</button>
+        <div id="memberTableWrapper" class="hidden">
+            <input type="text" placeholder="Search members..." oninput="window.filterTable('adminMembers', this.value)">
+            <button id="exportMembersBtn" style="background: #28a745">Export Members (CSV)</button>
+            <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Year</th><th>Phone</th><th>Joined</th><th>Action</th></tr></thead><tbody id="adminMembers"></tbody></table></div>
+        </div>
     </div>
 
     <div id="attSection" class="hidden">
-        <input type="text" placeholder="Search attendance..." oninput="window.filterTable('adminAttendance', this.value)">
-        <button id="exportAttendanceBtn" style="background: #28a745">Export Attendance (CSV)</button>
-        <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Event</th><th>Time</th><th>Action</th></tr></thead><tbody id="adminAttendance"></tbody></table></div>
+        <button class="toggle-btn" onclick="window.toggleTable('attendTableWrapper')">Toggle Attendance List View</button>
+        <div id="attendTableWrapper" class="hidden">
+            <input type="text" placeholder="Search attendance..." oninput="window.filterTable('adminAttendance', this.value)">
+            <button id="exportAttendanceBtn" style="background: #28a745">Export Attendance (CSV)</button>
+            <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Adm</th><th>Event</th><th>Time</th><th>Action</th></tr></thead><tbody id="adminAttendance"></tbody></table></div>
+        </div>
     </div>
 </div>
 
@@ -83,7 +90,11 @@ th{background:#003366;color:#fff}
         <h4>Events & Announcements</h4>
         <input id="aTitle" placeholder="Title"><textarea id="aBody" placeholder="Message"></textarea><button id="postAnnouncement">Post</button>
         <hr>
-        <input id="eTitle" placeholder="Event Name"><input id="eVenue" placeholder="Venue"><button id="addEvent">Add Event</button>
+        <input id="eTitle" placeholder="Event Name">
+        <input type="date" id="eDate">
+        <input type="time" id="eTime">
+        <input id="eVenue" placeholder="Venue">
+        <button id="addEvent">Add Event</button>
     </div>
 </div>
 <div id="adminPolls"></div>
@@ -110,7 +121,7 @@ th{background:#003366;color:#fff}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, increment } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, getDoc, query, where, increment } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
@@ -167,6 +178,16 @@ document.getElementById("startPoll").onclick=async()=>{
   alert("Poll Started!"); loadPolls();
 };
 
+document.getElementById("postAnnouncement").onclick=async()=>{
+  await addDoc(collection(db,"announcements"), { title: aTitle.value, body: aBody.value });
+  alert("Posted!"); loadAnnouncements();
+};
+
+document.getElementById("addEvent").onclick=async()=>{
+  await addDoc(collection(db,"events"), { title: eTitle.value, date: eDate.value, time: eTime.value, venue: eVenue.value });
+  alert("Event Added!"); loadEvents();
+};
+
 window.vote=async(id,opt)=>{
   await updateDoc(doc(db,"polls",id), { [`votes.${opt}`]: increment(1) });
   localStorage.setItem("voted_"+id, true);
@@ -179,6 +200,8 @@ window.switchTab=t=>{
     document.getElementById("tabRegister").classList.toggle("active", t==='reg');
     document.getElementById("tabAttend").classList.toggle("active", t==='att');
 };
+
+window.toggleTable=(id)=>{ document.getElementById(id).classList.toggle("hidden"); };
 
 window.filterTable=(tid,v)=>{
     const rows=document.getElementById(tid).getElementsByTagName("tr");
@@ -200,6 +223,7 @@ window.prepareEdit=async(col,id)=>{
 document.getElementById("saveEditBtn").onclick=async()=>{
     await updateDoc(doc(db,currentEditCol,currentEditId), {name:editName.value, adm:editAdm.value});
     document.getElementById("editZone").classList.add("hidden");
+    alert("Record Updated!");
 };
 
 /* LOADERS */
@@ -220,21 +244,13 @@ function loadPolls(){
     onSnapshot(collection(db,"polls"),s=>{
         adminPolls.innerHTML="<h4>Manage Polls</h4>"; memberPolls.innerHTML="<h3>Active Polls</h3>";
         s.forEach(d=>{
-            const p=d.data(); 
-            const isExpired = new Date().getTime() > p.expiry;
+            const p=d.data(); const isExpired = new Date().getTime() > p.expiry;
             let resHtml=""; for(let o in p.votes){ resHtml+=`<div class="poll-res">${o}: <b>${p.votes[o]}</b></div>`; }
-            
             adminPolls.innerHTML+=`<div class="card"><b>${p.title}</b><br><span class="timer" id="timer-admin-${d.id}"></span>${resHtml}<button class="btn-del" onclick="window.delItem('polls','${d.id}')">Remove Poll</button></div>`;
-            
             let mVoteHtml=`<div class="card"><b>${p.title}</b><br><span class="timer" id="timer-member-${d.id}"></span><br>`;
-            if(localStorage.getItem("voted_"+d.id) || isExpired){
-                mVoteHtml+=`<small>Live Results:</small>${resHtml}`;
-            } else {
-                p.options.forEach(o=>{ mVoteHtml+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `; });
-            }
+            if(localStorage.getItem("voted_"+d.id) || isExpired){ mVoteHtml+=`<small>Results:</small>${resHtml}`; } 
+            else { p.options.forEach(o=>{ mVoteHtml+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `; }); }
             memberPolls.innerHTML+=mVoteHtml+"</div>";
-
-            // Set Interval for live countdown
             setInterval(()=>{
                 const t = getTimerText(p.expiry);
                 if(document.getElementById(`timer-admin-${d.id}`)) document.getElementById(`timer-admin-${d.id}`).innerText = t;
@@ -244,22 +260,39 @@ function loadPolls(){
     });
 }
 
-async function loadAnnouncements(){
-    const s=await getDocs(collection(db,"announcements"));
-    adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="<h3>Announcements</h3>";
-    s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
+function loadAnnouncements(){
+    onSnapshot(collection(db,"announcements"),s=>{
+      adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="<h3>Announcements</h3>";
+      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
+    });
 }
 
-async function loadEvents(){
-    const s=await getDocs(collection(db,"events"));
-    memberEvents.innerHTML="<h3>Events</h3>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
-    s.forEach(d=>{ const x=d.data(); memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📍 ${x.venue}</div>`; mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; });
+function loadEvents(){
+    onSnapshot(collection(db,"events"), s=>{
+      memberEvents.innerHTML="<h3>Events</h3>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
+      s.forEach(d=>{ const x=d.data(); memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`; mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; });
+    });
 }
 
-/* REGISTRATION SUBMIT */
+/* REGISTRATION SUBMIT WITH DUPLICATE CHECK */
 document.getElementById("submitRegistration").onclick=async()=>{
-  await addDoc(collection(db,"members"),{name:regName.value, adm:regAdm.value, year:regYear.value, phone:regPhone.value, date:new Date().toLocaleString()});
-  alert("Welcome to PUYOLA!"); regName.value=""; regAdm.value="";
+  const nameVal = regName.value.trim();
+  const admVal = regAdm.value.trim();
+
+  if(!nameVal || !admVal) return alert("Please fill Name and Admission Number.");
+
+  // Query Firebase for existing Name AND Admission
+  const q = query(collection(db, "members"), where("name", "==", nameVal), where("adm", "==", admVal));
+  const querySnapshot = await getDocs(q);
+
+  if (!querySnapshot.empty) {
+    alert("Details Exist! Update Instead.");
+    return;
+  }
+
+  await addDoc(collection(db,"members"),{name:nameVal, adm:admVal, year:regYear.value, phone:regPhone.value, date:new Date().toLocaleString()});
+  alert("Welcome to PUYOLA!"); 
+  regName.value=""; regAdm.value=""; regYear.value=""; regPhone.value="";
 };
 
 document.getElementById("submitAttendance").onclick=async()=>{
@@ -275,7 +308,7 @@ document.getElementById("exportMembersBtn").onclick=async()=>{
   const b=new Blob([csv],{type:'text/csv'}); const l=document.createElement("a"); l.href=URL.createObjectURL(b); l.download="PUYOLA_Members.csv"; l.click();
 };
 
-window.delItem=async(c,i)=>{ if(confirm("Delete?")) await deleteDoc(doc(db,c,i)); };
+window.delItem=async(c,i)=>{ if(confirm("Delete permanently?")) await deleteDoc(doc(db,c,i)); };
 document.getElementById("year").textContent=new Date().getFullYear();
 </script>
 </body>
