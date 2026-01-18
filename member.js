@@ -1,56 +1,95 @@
 import { db } from "./firebase-config.js";
-import { collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 // EVENTS
 async function loadEvents() {
   const snapshot = await getDocs(collection(db, "events"));
-  const container = document.getElementById("events-list");
-  container.innerHTML = "";
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
-    container.innerHTML += `<div class="item"><strong>${data.title || "No Title"}</strong> - ${data.date || "No Date"}</div>`;
+  const list = document.getElementById("events-list");
+  list.innerHTML = "";
+
+  snapshot.forEach(d => {
+    const data = d.data();
+    list.innerHTML += `
+      <div class="item">
+        <strong>${data.title || "No Title"}</strong>
+        <div>${data.date || "No Date"}</div>
+      </div>
+    `;
   });
 }
 
-// POLLS (member can vote if active)
+// POLLS
 async function loadPolls() {
   const snapshot = await getDocs(collection(db, "polls"));
-  const container = document.getElementById("polls-list");
-  container.innerHTML = "";
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
-    const voteButtons = data.status === "active"
-      ? data.options?.map(opt => `<button onclick='vote("${docSnap.id}","${opt}")'>${opt}</button>`).join(" ") 
-      : `<em>Poll closed</em>`;
-    container.innerHTML += `<div class="item"><strong>${data.title || "No Title"}</strong> - ${voteButtons || "No options"}</div>`;
+  const list = document.getElementById("polls-list");
+  list.innerHTML = "";
+
+  snapshot.forEach(d => {
+    const data = d.data();
+
+    let buttons = "";
+
+    if (data.status === "active") {
+      buttons = data.options
+        .map(
+          opt =>
+            `<button onclick="vote('${d.id}','${opt}')">${opt}</button>`
+        )
+        .join(" ");
+    } else {
+      buttons = "<em>Poll closed</em>";
+    }
+
+    list.innerHTML += `
+      <div class="item">
+        <strong>${data.title || "No Title"}</strong>
+        <div>Status: ${data.status || "inactive"}</div>
+        <div>${buttons}</div>
+      </div>
+    `;
   });
 }
 
-// Handle voting
+// Vote
 window.vote = async (pollId, option) => {
   const pollRef = doc(db, "polls", pollId);
-  const pollSnap = await getDocs(collection(db, "polls"));
-  const docSnap = pollSnap.docs.find(d => d.id === pollId);
-  const data = docSnap.data();
+  const pollSnap = await getDoc(pollRef);
+  const data = pollSnap.data();
+
   const votes = data.votes || [];
   votes.push(option);
+
   await updateDoc(pollRef, { votes });
-  alert(`You voted: ${option}`);
+  alert("Vote recorded!");
   loadPolls();
-};
+}
 
 // ANNOUNCEMENTS
 async function loadAnnouncements() {
   const snapshot = await getDocs(collection(db, "announcements"));
-  const container = document.getElementById("announcements-list");
-  container.innerHTML = "";
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
-    container.innerHTML += `<div class="item"><strong>${data.title || "No Title"}</strong>: ${data.body || ""}</div>`;
+  const list = document.getElementById("announcements-list");
+  list.innerHTML = "";
+
+  snapshot.forEach(d => {
+    const data = d.data();
+    list.innerHTML += `
+      <div class="item">
+        <strong>${data.title || "No Title"}</strong>
+        <div>${data.body || ""}</div>
+      </div>
+    `;
   });
 }
 
-// INITIAL LOAD
-loadEvents();
-loadPolls();
-loadAnnouncements();
+// Load all
+window.addEventListener("load", () => {
+  loadEvents();
+  loadPolls();
+  loadAnnouncements();
+});
