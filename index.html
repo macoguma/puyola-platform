@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUYOLA Online Platform</title>
+
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;color:#333}
+header{background:#003366;color:#fff;padding:15px;text-align:center}
+header img{height:70px}
+section{padding:20px; max-width: 900px; margin: auto;}
+.card{background:#fff;padding:15px;margin:10px 0;border-radius:6px;box-shadow: 0 2px 4px rgba(0,0,0,0.1)}
+.hidden{display:none}
+input,textarea,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:4px;box-sizing: border-box;}
+button{background:#003366;color:#fff;border:none;padding:10px 15px;margin:5px 0;border-radius:4px;cursor:pointer;font-weight:bold}
+button:hover{background:#004a94}
+footer{text-align:center;background:#eee;padding:20px;margin-top:20px}
+table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff}
+th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.9em}
+th{background:#003366;color:#fff}
+.poll-result{background:#eef; padding:8px; margin:4px 0; border-radius:4px; font-size: 0.9em;}
+</style>
+</head>
+
+<body>
+
+<div id="loginBox" class="card" style="max-width:400px;margin:80px auto;text-align:center">
+  <img src="logo.png" alt="PUYOLA Logo" style="width:100px;">
+  <h2>PUYOLA</h2>
+  <p><b>Building Leaders. Building Legacy.</b></p>
+  <input type="password" id="loginPassword" placeholder="Enter password">
+  <label><input type="checkbox" id="togglePass"> Show Password</label><br>
+  <button id="loginBtn">Login</button>
+</div>
+
+<section id="adminView" class="hidden">
+<header>Admin Dashboard</header>
+
+<div class="card">
+    <h3>Create Announcement/Event/Poll</h3>
+    <button onclick="document.getElementById('formArea').classList.toggle('hidden')">Show/Hide Creation Tools</button>
+    <div id="formArea" class="hidden">
+        <input id="aTitle" placeholder="Announcement Title">
+        <textarea id="aBody" placeholder="Announcement Message"></textarea>
+        <button id="postAnnouncement">Post Announcement</button>
+        <hr>
+        <input id="eTitle" placeholder="Event Title">
+        <input type="date" id="eDate">
+        <input type="time" id="eTime">
+        <input id="eVenue" placeholder="Venue">
+        <button id="addEvent">Add Event</button>
+        <hr>
+        <input id="pTitle" placeholder="Poll Question">
+        <input id="pOptions" placeholder="Options (comma separated)">
+        <input type="number" id="pDuration" placeholder="Minutes">
+        <button id="startPoll">Start Poll</button>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Attendance Records</h3>
+    <button id="exportBtn" style="background: #28a745;">Export to Excel (.xls)</button>
+    <div style="overflow-x:auto;">
+        <table id="attendanceTable">
+            <thead>
+                <tr>
+                    <th>Name</th><th>Admission</th><th>Year</th><th>Phone</th><th>Event</th><th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="adminAttendance"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="adminAnnouncements"></div>
+<div id="adminEvents"></div>
+<div id="adminPolls"></div>
+</section>
+
+<section id="memberView" class="hidden">
+<header>Member Dashboard</header>
+
+<div class="card">
+    <h3>Event Attendance Sign-in</h3>
+    <input id="mName" placeholder="Full Name">
+    <input id="mAdm" placeholder="Admission Number">
+    <select id="mYear">
+        <option value="">Select Year of Study</option>
+        <option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option>
+    </select>
+    <input id="mPhone" placeholder="Phone Number">
+    <select id="mEventSelect"><option value="">Select Event</option></select>
+    <button id="submitAttendance">Submit Attendance</button>
+</div>
+
+<h3>Latest Announcements</h3>
+<div id="memberAnnouncements"></div>
+<h3>Upcoming Events</h3>
+<div id="memberEvents"></div>
+<h3>Active Polls</h3>
+<div id="memberPolls"></div>
+</section>
+
+<footer>© <span id="year"></span> PUYOLA | Designed by Oguma Austine</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyD4CHTW2lrpUzSnvX3KGJrIPSjdaoqoBQE",
+  authDomain:"puyola-platform.firebaseapp.com",
+  projectId:"puyola-platform",
+  storageBucket:"puyola-platform.firebasestorage.app",
+  messagingSenderId:"831659964215",
+  appId:"1:831659964215:web:6d568b43f4ad7f09af4cb2"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+const ADMIN="Puyola@0032542025", MEMBER="Puyola@2025";
+
+/* DOM ELEMENTS */
+const loginBox=document.getElementById("loginBox"), adminView=document.getElementById("adminView"), memberView=document.getElementById("memberView");
+const aTitle=document.getElementById("aTitle"), aBody=document.getElementById("aBody");
+const eTitle=document.getElementById("eTitle"), eDate=document.getElementById("eDate"), eTime=document.getElementById("eTime"), eVenue=document.getElementById("eVenue");
+const mName=document.getElementById("mName"), mAdm=document.getElementById("mAdm"), mYear=document.getElementById("mYear"), mPhone=document.getElementById("mPhone"), mEventSelect=document.getElementById("mEventSelect");
+
+/* LOGIN */
+document.getElementById("loginBtn").onclick=()=>{
+  const pass=document.getElementById("loginPassword").value;
+  if(pass===ADMIN){ loginBox.classList.add("hidden"); adminView.classList.remove("hidden"); loadAll(); }
+  else if(pass===MEMBER){ loginBox.classList.add("hidden"); memberView.classList.remove("hidden"); loadAll(); }
+  else alert("Wrong password");
+};
+
+/* ACTIONS */
+document.getElementById("postAnnouncement").onclick=async()=>{
+  await addDoc(collection(db,"announcements"),{title:aTitle.value, body:aBody.value, time:new Date().toLocaleString()});
+  aTitle.value=""; aBody.value=""; loadAnnouncements();
+};
+
+document.getElementById("addEvent").onclick=async()=>{
+  await addDoc(collection(db,"events"),{title:eTitle.value, date:eDate.value, time:eTime.value, venue:eVenue.value});
+  eTitle.value=""; eDate.value=""; eTime.value=""; eVenue.value=""; loadEvents();
+};
+
+document.getElementById("submitAttendance").onclick=async()=>{
+  if(!mName.value || !mEventSelect.value) return alert("Please fill all fields");
+  await addDoc(collection(db,"attendance"),{name:mName.value, adm:mAdm.value, year:mYear.value, phone:mPhone.value, event:mEventSelect.value, timestamp:new Date().toLocaleString()});
+  alert("Attendance Recorded!");
+  mName.value=""; mAdm.value=""; mPhone.value="";
+};
+
+/* LOADERS */
+async function loadAll(){ loadAnnouncements(); loadEvents(); loadPolls(); loadAttendance(); }
+
+async function loadAnnouncements(){
+  const snap=await getDocs(collection(db,"announcements"));
+  adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="";
+  snap.forEach(d=>{
+    const x=d.data();
+    const h=`<div class="card"><b>${x.title}</b><br><small>${x.time}</small><p>${x.body}</p>`;
+    adminAnnouncements.innerHTML+=h+`<button onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`;
+    memberAnnouncements.innerHTML+=h+`</div>`;
+  });
+}
+
+async function loadEvents(){
+  const snap=await getDocs(collection(db,"events"));
+  adminEvents.innerHTML="<h4>Events</h4>"; memberEvents.innerHTML=""; mEventSelect.innerHTML='<option value="">Select Event</option>';
+  snap.forEach(d=>{
+    const x=d.data();
+    const h=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | ⏰ ${x.time}<br>📍 ${x.venue}</div>`;
+    adminEvents.innerHTML+=h.replace('</div>',`<button onclick="window.delItem('events','${d.id}')">Delete</button></div>`);
+    memberEvents.innerHTML+=h;
+    mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`;
+  });
+}
+
+async function loadAttendance(){
+  onSnapshot(collection(db,"attendance"),(snap)=>{
+    adminAttendance.innerHTML="";
+    snap.forEach(d=>{
+      const x=d.data();
+      adminAttendance.innerHTML+=`<tr>
+        <td>${x.name}</td><td>${x.adm}</td><td>${x.year}</td><td>${x.phone}</td><td>${x.event}</td>
+        <td><button onclick="window.delItem('attendance','${d.id}')" style="background:red;padding:4px">X</button></td>
+      </tr>`;
+    });
+  });
+}
+
+async function loadPolls(){
+  const snap=await getDocs(collection(db,"polls"));
+  adminPolls.innerHTML="<h4>Polls</h4>"; memberPolls.innerHTML="";
+  snap.forEach(d=>{
+    const p=d.data();
+    let res=""; for(let o in p.votes){ res+=`<div class="poll-result">${o}: ${p.votes[o]}</div>`; }
+    adminPolls.innerHTML+=`<div class="card"><b>${p.title}</b>${res}<button onclick="window.delItem('polls','${d.id}')">Delete</button></div>`;
+    
+    let voted=localStorage.getItem("voted_"+d.id);
+    let mH=`<div class="card"><b>${p.title}</b><br>`;
+    if(p.status==="active" && !voted){
+      p.options.forEach(o=>{ mH+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `; });
+    } else { mH+=`<small>Results:</small>${res}`; }
+    memberPolls.innerHTML+=mH+"</div>";
+  });
+}
+
+/* GLOBALS */
+window.delItem=async(col,id)=>{ if(confirm("Delete?")){ await deleteDoc(doc(db,col,id)); loadAll(); } };
+window.vote=async(id,opt)=>{
+  await updateDoc(doc(db,"polls",id),{[`votes.${opt}`]:increment(1)});
+  localStorage.setItem("voted_"+id,true); loadPolls();
+};
+
+document.getElementById("exportBtn").onclick=()=>{
+  let table = document.getElementById("attendanceTable");
+  let html = table.outerHTML;
+  window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+};
+
+document.getElementById("year").textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
