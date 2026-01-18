@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PUYOLA Online Platform</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
 body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;color:#333}
@@ -29,7 +30,9 @@ th{background:#003366;color:#fff}
 .poll-res{background:#eef; padding:8px; margin:4px 0; border-radius:4px; border-left:4px solid #003366; font-size:0.9em}
 .timer{color:#dc3545; font-weight:bold; font-size:0.85em}
 .toggle-btn{background:#6c757d; font-size:0.8em; margin-bottom:10px; width:100%}
-.update-btn{background:#ffc107; color:#000; width:100%;}
+.contact-grid{display: flex; gap: 10px; margin-top: 10px;}
+.btn-email{background:#ea4335; flex:1; text-align:center; display:block; text-decoration:none; color:white; padding:10px; border-radius:4px;}
+.btn-whatsapp{background:#25d366; flex:1; text-align:center; display:block; text-decoration:none; color:white; padding:10px; border-radius:4px;}
 </style>
 </head>
 
@@ -101,17 +104,27 @@ th{background:#003366;color:#fff}
 </div>
 <div id="adminPolls"></div>
 <div id="adminAnnouncements"></div>
+<div id="adminEventsList"></div>
 </section>
 
 <section id="memberView" class="hidden">
 <header>Member Dashboard <button class="logout-btn" onclick="window.logout()">Logout</button></header>
+
+<div class="card">
+    <h4 style="margin-top:0">Support & Feedback</h4>
+    <div class="contact-grid">
+        <a href="mailto:info.puyola@gmail.com" class="btn-email"><i class="fas fa-envelope"></i> Email Us</a>
+        <a href="https://wa.me/254793378439" target="_blank" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> Contact Admin</a>
+    </div>
+</div>
+
 <div class="card">
     <h3>Join PUYOLA (Membership)</h3>
     <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No">
     <select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
     <input id="regPhone" placeholder="Phone">
     <button id="submitRegistration" style="width:100%; background:#28a745">Register</button>
-    <button id="updateRegistration" class="update-btn">Update (To change Existing Details)</button>
+    <button id="updateRegistration" style="width:100%; background:#ffc107; color:black">Update (To change Existing Details)</button>
 </div>
 <div class="card">
     <h3>Event Attendance</h3>
@@ -168,12 +181,14 @@ function getTimerText(expiry){
     return `${mins}m ${secs}s remaining`;
 }
 
+/* ADMIN POSTING ACTIONS */
 document.getElementById("startPoll").onclick=async()=>{
   const opts = document.getElementById("pOptions").value.split(",").map(o=>o.trim());
   let votes = {}; opts.forEach(o=>votes[o]=0);
   const durationMs = (parseInt(document.getElementById("pDuration").value) || 60) * 60000;
   await addDoc(collection(db,"polls"), { title: pTitle.value, options: opts, votes: votes, expiry: new Date().getTime() + durationMs });
   alert("Poll Started!"); 
+  pTitle.value=""; pOptions.value=""; pDuration.value="";
 };
 
 document.getElementById("postAnnouncement").onclick=async()=>{
@@ -183,7 +198,8 @@ document.getElementById("postAnnouncement").onclick=async()=>{
 
 document.getElementById("addEvent").onclick=async()=>{
   await addDoc(collection(db,"events"), { title: eTitle.value, date: eDate.value, time: eTime.value, venue: eVenue.value });
-  alert("Event Added!"); eTitle.value=""; eVenue.value="";
+  alert("Event Added!"); 
+  eTitle.value=""; eDate.value=""; eTime.value=""; eVenue.value="";
 };
 
 window.vote=async(id,opt)=>{
@@ -219,7 +235,7 @@ window.prepareEdit=async(col,id)=>{
 document.getElementById("saveEditBtn").onclick=async()=>{
     await updateDoc(doc(db,currentEditCol,currentEditId), {name:editName.value, adm:editAdm.value});
     document.getElementById("editZone").classList.add("hidden");
-    alert("Updated Successfully!");
+    alert("Updated!");
 };
 
 function loadAll(){ loadAdminData(); loadAnnouncements(); loadEvents(); loadPolls(); }
@@ -258,18 +274,25 @@ function loadPolls(){
 function loadAnnouncements(){
     onSnapshot(collection(db,"announcements"),s=>{
       adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="<h3>Announcements</h3>";
-      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
+      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p><button class="btn-del" onclick="window.delItem('announcements','${d.id}')">Delete Post</button></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
     });
 }
 
 function loadEvents(){
     onSnapshot(collection(db,"events"), s=>{
-      memberEvents.innerHTML="<h3>Events</h3>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
-      s.forEach(d=>{ const x=d.data(); memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`; mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; });
+      memberEvents.innerHTML="<h3>Events</h3>"; 
+      adminEventsList.innerHTML="<h4>Manage Events</h4>"; 
+      mEventSelect.innerHTML='<option value="">Select Event</option>';
+      s.forEach(d=>{ 
+          const x=d.data(); 
+          const eventHtml = `<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`;
+          memberEvents.innerHTML += eventHtml;
+          adminEventsList.innerHTML += `<div class="card"><b>${x.title}</b><br><button class="btn-del" onclick="window.delItem('events','${d.id}')">Delete Event</button></div>`;
+          mEventSelect.innerHTML += `<option value="${x.title}">${x.title}</option>`; 
+      });
     });
 }
 
-/* REGISTRATION & UPDATE LOGIC */
 document.getElementById("submitRegistration").onclick=async()=>{
   const n = regName.value.trim(), a = regAdm.value.trim();
   if(!n || !a) return alert("Fill Name and Adm No.");
@@ -283,18 +306,14 @@ document.getElementById("submitRegistration").onclick=async()=>{
 
 document.getElementById("updateRegistration").onclick=async()=>{
   const n = regName.value.trim(), a = regAdm.value.trim();
-  if(!n || !a) return alert("Enter Name and Adm No. to find your record.");
+  if(!n || !a) return alert("Enter Name and Adm No.");
   const snap = await getDocs(collection(db, "members"));
-  let foundId = null;
-  snap.forEach(d => { if(d.data().name.toLowerCase() === n.toLowerCase() && d.data().adm.toLowerCase() === a.toLowerCase()) foundId = d.id; });
-  
-  if(foundId){
-      await updateDoc(doc(db, "members", foundId), { year: regYear.value, phone: regPhone.value, date: "Updated: " + new Date().toLocaleString() });
-      alert("Details Updated Successfully!");
-      regName.value=""; regAdm.value=""; regPhone.value="";
-  } else {
-      alert("Record not found! Please Register first.");
-  }
+  let fId = null;
+  snap.forEach(d => { if(d.data().name.toLowerCase() === n.toLowerCase() && d.data().adm.toLowerCase() === a.toLowerCase()) fId = d.id; });
+  if(fId){
+      await updateDoc(doc(db, "members", fId), { year: regYear.value, phone: regPhone.value, date: "Updated: " + new Date().toLocaleString() });
+      alert("Updated!"); regName.value=""; regAdm.value=""; regPhone.value="";
+  } else alert("Not found!");
 };
 
 document.getElementById("submitAttendance").onclick=async()=>{
