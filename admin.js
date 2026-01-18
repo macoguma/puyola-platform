@@ -1,88 +1,110 @@
 import { db } from "./firebase-config.js";
-import {
-  collection, getDocs, updateDoc, doc, deleteDoc
-} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { collection, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+// UTILITY: Clear and render items with proper event listeners
 async function loadEvents() {
-  const snapshot = await getDocs(collection(db, "events"));
   const container = document.getElementById("events-list");
   container.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "events"));
   snapshot.forEach(docSnap => {
     const data = docSnap.data();
-    container.innerHTML += `
-      <div class="item">
-        <strong>${data.title || "No Title"}</strong> - ${data.date || "No Date"}
-        <button onclick='deleteEvent("${docSnap.id}")'>Delete</button>
-      </div>
-    `;
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<strong>${data.title || "No Title"}</strong> - ${data.date || "No Date"}`;
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", async () => {
+      const newTitle = prompt("New Event Title:", data.title);
+      if (!newTitle) return;
+      await updateDoc(doc(db, "events", docSnap.id), { title: newTitle });
+      loadEvents();
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", async () => {
+      if (confirm("Delete this event?")) {
+        await deleteDoc(doc(db, "events", docSnap.id));
+        loadEvents();
+      }
+    });
+
+    div.appendChild(editBtn);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
   });
 }
 
 async function loadPolls() {
-  const snapshot = await getDocs(collection(db, "polls"));
   const container = document.getElementById("polls-list");
   container.innerHTML = "";
-
+  const snapshot = await getDocs(collection(db, "polls"));
   snapshot.forEach(docSnap => {
     const data = docSnap.data();
-    const votes = data.votes || {};
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<strong>${data.title || "No Title"}</strong> - Status: ${data.status || "N/A"}`;
 
-    // Show results
-    const results = Object.keys(votes).map(opt => {
-      return `<div>${opt}: ${votes[opt]}</div>`;
-    }).join("");
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "Close";
+    closeBtn.addEventListener("click", async () => {
+      await updateDoc(doc(db, "polls", docSnap.id), { status: "closed" });
+      loadPolls();
+    });
 
-    container.innerHTML += `
-      <div class="item">
-        <strong>${data.title || "No Title"}</strong> - ${data.status || "N/A"}
-        <div>${results}</div>
-        <button onclick='closePoll("${docSnap.id}")'>Close</button>
-        <button onclick='deletePoll("${docSnap.id}")'>Delete</button>
-      </div>
-    `;
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", async () => {
+      if (confirm("Delete this poll?")) {
+        await deleteDoc(doc(db, "polls", docSnap.id));
+        loadPolls();
+      }
+    });
+
+    div.appendChild(closeBtn);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
   });
 }
 
 async function loadAnnouncements() {
-  const snapshot = await getDocs(collection(db, "announcements"));
   const container = document.getElementById("announcements-list");
   container.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "announcements"));
   snapshot.forEach(docSnap => {
     const data = docSnap.data();
-    container.innerHTML += `
-      <div class="item">
-        <strong>${data.title || "No Title"}</strong>: ${data.body || ""}
-        <button onclick='deleteAnnouncement("${docSnap.id}")'>Delete</button>
-      </div>
-    `;
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<strong>${data.title || "No Title"}</strong>: ${data.body || ""}`;
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", async () => {
+      const newTitle = prompt("New Announcement Title:", data.title);
+      const newBody = prompt("New Announcement Body:", data.body);
+      if (!newTitle && !newBody) return;
+      const updateData = {};
+      if (newTitle) updateData.title = newTitle;
+      if (newBody) updateData.body = newBody;
+      await updateDoc(doc(db, "announcements", docSnap.id), updateData);
+      loadAnnouncements();
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", async () => {
+      if (confirm("Delete this announcement?")) {
+        await deleteDoc(doc(db, "announcements", docSnap.id));
+        loadAnnouncements();
+      }
+    });
+
+    div.appendChild(editBtn);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
   });
 }
-
-window.closePoll = async (id) => {
-  await updateDoc(doc(db, "polls", id), { status: "closed" });
-  loadPolls();
-};
-
-window.deletePoll = async (id) => {
-  if(confirm("Delete this poll?")) {
-    await deleteDoc(doc(db, "polls", id));
-    loadPolls();
-  }
-};
-
-window.deleteEvent = async (id) => {
-  if(confirm("Delete this event?")) {
-    await deleteDoc(doc(db, "events", id));
-    loadEvents();
-  }
-};
-
-window.deleteAnnouncement = async (id) => {
-  if(confirm("Delete this announcement?")) {
-    await deleteDoc(doc(db, "announcements", id));
-    loadAnnouncements();
-  }
-};
 
 // INITIAL LOAD
 loadEvents();
