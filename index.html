@@ -29,6 +29,7 @@ th{background:#003366;color:#fff}
 .poll-res{background:#eef; padding:8px; margin:4px 0; border-radius:4px; border-left:4px solid #003366; font-size:0.9em}
 .timer{color:#dc3545; font-weight:bold; font-size:0.85em}
 .toggle-btn{background:#6c757d; font-size:0.8em; margin-bottom:10px; width:100%}
+.update-btn{background:#ffc107; color:#000; width:100%;}
 </style>
 </head>
 
@@ -106,7 +107,11 @@ th{background:#003366;color:#fff}
 <header>Member Dashboard <button class="logout-btn" onclick="window.logout()">Logout</button></header>
 <div class="card">
     <h3>Join PUYOLA (Membership)</h3>
-    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No"><select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select><input id="regPhone" placeholder="Phone"><button id="submitRegistration" style="width:100%; background:#28a745">Register</button>
+    <input id="regName" placeholder="Full Name"><input id="regAdm" placeholder="Admission No">
+    <select id="regYear"><option value="">Select Year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
+    <input id="regPhone" placeholder="Phone">
+    <button id="submitRegistration" style="width:100%; background:#28a745">Register</button>
+    <button id="updateRegistration" class="update-btn">Update (To change Existing Details)</button>
 </div>
 <div class="card">
     <h3>Event Attendance</h3>
@@ -138,7 +143,6 @@ const db=getFirestore(app);
 const ADMIN="Puyola@0032542025", MEMBER="Puyola@2025";
 let currentEditId=null, currentEditCol="";
 
-/* SESSION HANDLER */
 window.onload=()=>{
     const s=localStorage.getItem("puyola_session");
     if(s==="admin"){ loginBox.classList.add("hidden"); adminView.classList.remove("hidden"); loadAll(); }
@@ -155,7 +159,6 @@ document.getElementById("loginBtn").onclick=()=>{
 window.logout=()=>{ localStorage.removeItem("puyola_session"); location.reload(); };
 document.getElementById("togglePass").onchange=e=>{ document.getElementById("loginPassword").type=e.target.checked?"text":"password"; };
 
-/* POLL COUNTDOWN LOGIC */
 function getTimerText(expiry){
     const now = new Date().getTime();
     const diff = expiry - now;
@@ -165,17 +168,11 @@ function getTimerText(expiry){
     return `${mins}m ${secs}s remaining`;
 }
 
-/* DATA ACTIONS */
 document.getElementById("startPoll").onclick=async()=>{
   const opts = document.getElementById("pOptions").value.split(",").map(o=>o.trim());
   let votes = {}; opts.forEach(o=>votes[o]=0);
   const durationMs = (parseInt(document.getElementById("pDuration").value) || 60) * 60000;
-  await addDoc(collection(db,"polls"), {
-      title: document.getElementById("pTitle").value,
-      options: opts,
-      votes: votes,
-      expiry: new Date().getTime() + durationMs
-  });
+  await addDoc(collection(db,"polls"), { title: pTitle.value, options: opts, votes: votes, expiry: new Date().getTime() + durationMs });
   alert("Poll Started!"); 
 };
 
@@ -185,12 +182,7 @@ document.getElementById("postAnnouncement").onclick=async()=>{
 };
 
 document.getElementById("addEvent").onclick=async()=>{
-  await addDoc(collection(db,"events"), { 
-      title: eTitle.value, 
-      date: eDate.value, 
-      time: eTime.value, 
-      venue: eVenue.value 
-  });
+  await addDoc(collection(db,"events"), { title: eTitle.value, date: eDate.value, time: eTime.value, venue: eVenue.value });
   alert("Event Added!"); eTitle.value=""; eVenue.value="";
 };
 
@@ -199,7 +191,6 @@ window.vote=async(id,opt)=>{
   localStorage.setItem("voted_"+id, true);
 };
 
-/* UI HELPERS */
 window.switchTab=t=>{
     document.getElementById("regSection").classList.toggle("hidden", t!=='reg');
     document.getElementById("attSection").classList.toggle("hidden", t!=='att');
@@ -214,7 +205,6 @@ window.filterTable=(tid,v)=>{
     for(let r of rows){ r.style.display=r.innerText.toLowerCase().includes(v.toLowerCase())?"":"none"; }
 };
 
-/* EDITING */
 window.prepareEdit=async(col,id)=>{
     const snap=await getDoc(doc(db,col,id));
     if(snap.exists()){
@@ -232,7 +222,6 @@ document.getElementById("saveEditBtn").onclick=async()=>{
     alert("Updated Successfully!");
 };
 
-/* REAL-TIME LOADERS */
 function loadAll(){ loadAdminData(); loadAnnouncements(); loadEvents(); loadPolls(); }
 
 function loadAdminData(){
@@ -269,54 +258,50 @@ function loadPolls(){
 function loadAnnouncements(){
     onSnapshot(collection(db,"announcements"),s=>{
       adminAnnouncements.innerHTML="<h4>Announcements</h4>"; memberAnnouncements.innerHTML="<h3>Announcements</h3>";
-      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p><button class="btn-del admin-only" onclick="window.delItem('announcements','${d.id}')">Delete</button></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
+      s.forEach(d=>{ const x=d.data(); const h=`<div class="card"><b>${x.title}</b><p>${x.body}</p></div>`; adminAnnouncements.innerHTML+=h; memberAnnouncements.innerHTML+=h; });
     });
 }
 
 function loadEvents(){
     onSnapshot(collection(db,"events"), s=>{
       memberEvents.innerHTML="<h3>Events</h3>"; mEventSelect.innerHTML='<option value="">Select Event</option>';
-      s.forEach(d=>{ 
-          const x=d.data(); 
-          memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}<br><button class="btn-del admin-only" onclick="window.delItem('events','${d.id}')">Delete</button></div>`; 
-          mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; 
-      });
+      s.forEach(d=>{ const x=d.data(); memberEvents.innerHTML+=`<div class="card"><b>${x.title}</b><br>📅 ${x.date} | 🕒 ${x.time}<br>📍 ${x.venue}</div>`; mEventSelect.innerHTML+=`<option value="${x.title}">${x.title}</option>`; });
     });
 }
 
-/* REGISTRATION WITH CASE-INSENSITIVE DUPLICATE CHECK */
+/* REGISTRATION & UPDATE LOGIC */
 document.getElementById("submitRegistration").onclick=async()=>{
-  const nameVal = regName.value.trim();
-  const admVal = regAdm.value.trim();
-  if(!nameVal || !admVal) return alert("Fill Name and Admission No.");
-
-  // Fetch all members to check case-insensitive match
+  const n = regName.value.trim(), a = regAdm.value.trim();
+  if(!n || !a) return alert("Fill Name and Adm No.");
   const snap = await getDocs(collection(db, "members"));
   let duplicate = false;
-  snap.forEach(doc => {
-      const data = doc.data();
-      if(data.name.trim().toLowerCase() === nameVal.toLowerCase() && 
-         data.adm.trim().toLowerCase() === admVal.toLowerCase()) {
-          duplicate = true;
-      }
-  });
+  snap.forEach(d => { if(d.data().name.toLowerCase() === n.toLowerCase() && d.data().adm.toLowerCase() === a.toLowerCase()) duplicate = true; });
+  if(duplicate) return alert("Details Exist! Update Instead.");
+  await addDoc(collection(db,"members"),{name:n, adm:a, year:regYear.value, phone:regPhone.value, date:new Date().toLocaleString()});
+  alert("Registered!"); regName.value=""; regAdm.value=""; regPhone.value="";
+};
 
-  if(duplicate){
-      alert("Details Exist! Update Instead.");
-      return;
+document.getElementById("updateRegistration").onclick=async()=>{
+  const n = regName.value.trim(), a = regAdm.value.trim();
+  if(!n || !a) return alert("Enter Name and Adm No. to find your record.");
+  const snap = await getDocs(collection(db, "members"));
+  let foundId = null;
+  snap.forEach(d => { if(d.data().name.toLowerCase() === n.toLowerCase() && d.data().adm.toLowerCase() === a.toLowerCase()) foundId = d.id; });
+  
+  if(foundId){
+      await updateDoc(doc(db, "members", foundId), { year: regYear.value, phone: regPhone.value, date: "Updated: " + new Date().toLocaleString() });
+      alert("Details Updated Successfully!");
+      regName.value=""; regAdm.value=""; regPhone.value="";
+  } else {
+      alert("Record not found! Please Register first.");
   }
-
-  await addDoc(collection(db,"members"),{name:nameVal, adm:admVal, year:regYear.value, phone:regPhone.value, date:new Date().toLocaleString()});
-  alert("Welcome to PUYOLA!"); 
-  regName.value=""; regAdm.value="";
 };
 
 document.getElementById("submitAttendance").onclick=async()=>{
   await addDoc(collection(db,"attendance"),{name:attName.value, adm:attAdm.value, event:mEventSelect.value, time:new Date().toLocaleString()});
-  alert("Attendance Recorded!"); attName.value="";
+  alert("Attendance Recorded!"); attName.value=""; attAdm.value="";
 };
 
-/* EXPORT CSV */
 document.getElementById("exportMembersBtn").onclick=async()=>{
   const s=await getDocs(collection(db,"members"));
   let csv="Name,Adm,Year,Phone,Date\n";
