@@ -7,39 +7,43 @@
 
 <style>
 body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;color:#333}
-header{background:#003366;color:#fff;padding:15px;text-align:center}
+header{background:#003366;color:#fff;padding:15px;text-align:center;position:relative}
 header img{height:70px}
+.logout-btn{position:absolute;right:15px;top:15px;background:#ff4d4d;color:white;padding:5px 10px;border-radius:4px;font-size:0.8em;border:none;cursor:pointer}
 section{padding:20px; max-width: 900px; margin: auto;}
 .card{background:#fff;padding:15px;margin:10px 0;border-radius:6px;box-shadow: 0 2px 4px rgba(0,0,0,0.1)}
 .hidden{display:none}
 input,textarea,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:4px;box-sizing: border-box;}
 button{background:#003366;color:#fff;border:none;padding:10px 15px;margin:5px 0;border-radius:4px;cursor:pointer;font-weight:bold}
-button:hover{background:#004a94}
+button:hover{opacity:0.9}
 footer{text-align:center;background:#eee;padding:20px;margin-top:20px}
 table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff}
 th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.9em}
 th{background:#003366;color:#fff}
-.poll-result{background:#eef; padding:8px; margin:4px 0; border-radius:4px; font-size: 0.9em;}
+.poll-result{background:#eef; padding:8px; margin:4px 0; border-radius:4px; font-size: 0.9em; border-left: 4px solid #003366;}
 </style>
 </head>
 
 <body>
 
 <div id="loginBox" class="card" style="max-width:400px;margin:80px auto;text-align:center">
-  <img src="logo.png" alt="PUYOLA Logo" style="width:100px;">
+  <img src="logo.png" alt="PUYOLA Logo" style="width:100px; margin-bottom:10px;">
   <h2>PUYOLA</h2>
   <p><b>Building Leaders. Building Legacy.</b></p>
   <input type="password" id="loginPassword" placeholder="Enter password">
-  <label><input type="checkbox" id="togglePass"> Show Password</label><br>
-  <button id="loginBtn">Login</button>
+  <label style="font-size:0.9em"><input type="checkbox" id="togglePass"> Show Password</label><br>
+  <button id="loginBtn" style="width:100%;margin-top:10px">Login</button>
 </div>
 
 <section id="adminView" class="hidden">
-<header>Admin Dashboard</header>
+<header>
+    Admin Dashboard
+    <button class="logout-btn" onclick="window.logout()">Logout</button>
+</header>
 
 <div class="card">
-    <h3>Create Announcement/Event/Poll</h3>
-    <button onclick="document.getElementById('formArea').classList.toggle('hidden')">Show/Hide Creation Tools</button>
+    <h3>Creation Tools</h3>
+    <button onclick="document.getElementById('formArea').classList.toggle('hidden')">Toggle Forms</button>
     <div id="formArea" class="hidden">
         <input id="aTitle" placeholder="Announcement Title">
         <textarea id="aBody" placeholder="Announcement Message"></textarea>
@@ -48,7 +52,7 @@ th{background:#003366;color:#fff}
         <input id="eTitle" placeholder="Event Title">
         <input type="date" id="eDate">
         <input type="time" id="eTime">
-        <input id="eVenue" placeholder="Venue">
+        <input id="eVenue" placeholder="Venue/Location">
         <button id="addEvent">Add Event</button>
         <hr>
         <input id="pTitle" placeholder="Poll Question">
@@ -60,12 +64,12 @@ th{background:#003366;color:#fff}
 
 <div class="card">
     <h3>Attendance Records</h3>
-    <button id="exportBtn" style="background: #28a745;">Export to Excel (.xls)</button>
+    <button id="exportBtn" style="background: #28a745; margin-bottom:10px">Export Excel</button>
     <div style="overflow-x:auto;">
         <table id="attendanceTable">
             <thead>
                 <tr>
-                    <th>Name</th><th>Admission</th><th>Year</th><th>Phone</th><th>Event</th><th>Action</th>
+                    <th>Name</th><th>Adm</th><th>Year</th><th>Phone</th><th>Event</th><th>Action</th>
                 </tr>
             </thead>
             <tbody id="adminAttendance"></tbody>
@@ -79,26 +83,29 @@ th{background:#003366;color:#fff}
 </section>
 
 <section id="memberView" class="hidden">
-<header>Member Dashboard</header>
+<header>
+    Member Dashboard
+    <button class="logout-btn" onclick="window.logout()">Logout</button>
+</header>
 
 <div class="card">
-    <h3>Event Attendance Sign-in</h3>
+    <h3>Event Attendance</h3>
     <input id="mName" placeholder="Full Name">
     <input id="mAdm" placeholder="Admission Number">
     <select id="mYear">
-        <option value="">Select Year of Study</option>
+        <option value="">Year of Study</option>
         <option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option>
     </select>
     <input id="mPhone" placeholder="Phone Number">
     <select id="mEventSelect"><option value="">Select Event</option></select>
-    <button id="submitAttendance">Submit Attendance</button>
+    <button id="submitAttendance" style="width:100%">Sign In</button>
 </div>
 
-<h3>Latest Announcements</h3>
+<h3>Announcements</h3>
 <div id="memberAnnouncements"></div>
-<h3>Upcoming Events</h3>
+<h3>Events</h3>
 <div id="memberEvents"></div>
-<h3>Active Polls</h3>
+<h3>Polls</h3>
 <div id="memberPolls"></div>
 </section>
 
@@ -127,7 +134,7 @@ const aTitle=document.getElementById("aTitle"), aBody=document.getElementById("a
 const eTitle=document.getElementById("eTitle"), eDate=document.getElementById("eDate"), eTime=document.getElementById("eTime"), eVenue=document.getElementById("eVenue");
 const mName=document.getElementById("mName"), mAdm=document.getElementById("mAdm"), mYear=document.getElementById("mYear"), mPhone=document.getElementById("mPhone"), mEventSelect=document.getElementById("mEventSelect");
 
-/* LOGIN */
+/* LOGIN & LOGOUT */
 document.getElementById("loginBtn").onclick=()=>{
   const pass=document.getElementById("loginPassword").value;
   if(pass===ADMIN){ loginBox.classList.add("hidden"); adminView.classList.remove("hidden"); loadAll(); }
@@ -135,7 +142,18 @@ document.getElementById("loginBtn").onclick=()=>{
   else alert("Wrong password");
 };
 
-/* ACTIONS */
+window.logout=()=>{
+  adminView.classList.add("hidden");
+  memberView.classList.add("hidden");
+  loginBox.classList.remove("hidden");
+  document.getElementById("loginPassword").value="";
+};
+
+document.getElementById("togglePass").onchange=e=>{
+  document.getElementById("loginPassword").type=e.target.checked?"text":"password";
+};
+
+/* DATA ACTIONS */
 document.getElementById("postAnnouncement").onclick=async()=>{
   await addDoc(collection(db,"announcements"),{title:aTitle.value, body:aBody.value, time:new Date().toLocaleString()});
   aTitle.value=""; aBody.value=""; loadAnnouncements();
@@ -147,10 +165,9 @@ document.getElementById("addEvent").onclick=async()=>{
 };
 
 document.getElementById("submitAttendance").onclick=async()=>{
-  if(!mName.value || !mEventSelect.value) return alert("Please fill all fields");
-  await addDoc(collection(db,"attendance"),{name:mName.value, adm:mAdm.value, year:mYear.value, phone:mPhone.value, event:mEventSelect.value, timestamp:new Date().toLocaleString()});
-  alert("Attendance Recorded!");
-  mName.value=""; mAdm.value=""; mPhone.value="";
+  if(!mName.value || !mEventSelect.value) return alert("Please fill Name and Select Event");
+  await addDoc(collection(db,"attendance"),{name:mName.value, adm:mAdm.value, year:mYear.value, phone:mPhone.value, event:mEventSelect.value, time:new Date().toLocaleString()});
+  alert("Success!"); mName.value=""; mAdm.value=""; mPhone.value="";
 };
 
 /* LOADERS */
@@ -179,14 +196,14 @@ async function loadEvents(){
   });
 }
 
-async function loadAttendance(){
+function loadAttendance(){
   onSnapshot(collection(db,"attendance"),(snap)=>{
     adminAttendance.innerHTML="";
     snap.forEach(d=>{
       const x=d.data();
       adminAttendance.innerHTML+=`<tr>
         <td>${x.name}</td><td>${x.adm}</td><td>${x.year}</td><td>${x.phone}</td><td>${x.event}</td>
-        <td><button onclick="window.delItem('attendance','${d.id}')" style="background:red;padding:4px">X</button></td>
+        <td><button onclick="window.delItem('attendance','${d.id}')" style="background:red;padding:2px 6px">X</button></td>
       </tr>`;
     });
   });
@@ -197,20 +214,21 @@ async function loadPolls(){
   adminPolls.innerHTML="<h4>Polls</h4>"; memberPolls.innerHTML="";
   snap.forEach(d=>{
     const p=d.data();
-    let res=""; for(let o in p.votes){ res+=`<div class="poll-result">${o}: ${p.votes[o]}</div>`; }
+    let res=""; for(let o in p.votes){ res+=`<div class="poll-result">${o}: <b>${p.votes[o]}</b></div>`; }
     adminPolls.innerHTML+=`<div class="card"><b>${p.title}</b>${res}<button onclick="window.delItem('polls','${d.id}')">Delete</button></div>`;
     
     let voted=localStorage.getItem("voted_"+d.id);
     let mH=`<div class="card"><b>${p.title}</b><br>`;
     if(p.status==="active" && !voted){
       p.options.forEach(o=>{ mH+=`<button onclick="window.vote('${d.id}','${o}')">${o}</button> `; });
-    } else { mH+=`<small>Results:</small>${res}`; }
+    } else { mH+=`<small>Live Results:</small>${res}`; }
     memberPolls.innerHTML+=mH+"</div>";
   });
 }
 
 /* GLOBALS */
-window.delItem=async(col,id)=>{ if(confirm("Delete?")){ await deleteDoc(doc(db,col,id)); loadAll(); } };
+window.delItem=async(col,id)=>{ if(confirm("Permanently Delete?")){ await deleteDoc(doc(db,col,id)); loadAll(); } };
+
 window.vote=async(id,opt)=>{
   await updateDoc(doc(db,"polls",id),{[`votes.${opt}`]:increment(1)});
   localStorage.setItem("voted_"+id,true); loadPolls();
@@ -219,7 +237,11 @@ window.vote=async(id,opt)=>{
 document.getElementById("exportBtn").onclick=()=>{
   let table = document.getElementById("attendanceTable");
   let html = table.outerHTML;
-  window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+  let url = 'data:application/vnd.ms-excel,' + encodeURIComponent(html);
+  let link = document.createElement("a");
+  link.href = url;
+  link.download = "Puyola_Attendance.xls";
+  link.click();
 };
 
 document.getElementById("year").textContent=new Date().getFullYear();
